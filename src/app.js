@@ -41,13 +41,32 @@ const engine = createAlarmEngine({
   reArmMs: 90000,
 });
 
-// Served over http -> talk to the mock SCADA server for real; opened as a file
-// -> fall back to the in-browser simulator.
+/**
+ * Pick a data source by ASKING whether a SCADA backend is there, rather than
+ * assuming one because we happen to be served over http. On static hosting
+ * (Vercel, GitHub Pages, any plain web server) there is no /api, and guessing
+ * `sse` would park the dashboard on a "Feed lost" banner for several seconds
+ * before falling back — a false alarm on first paint is exactly what this
+ * dashboard is supposed to avoid.
+ */
 const servedOverHttp = location.protocol === 'http:' || location.protocol === 'https:';
-const initialMode = servedOverHttp ? 'sse' : 'sim';
+
+async function detectSource() {
+  if (!servedOverHttp) return 'sim';
+  try {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 2500);
+    const res = await fetch('./api/health', { signal: ctl.signal, cache: 'no-store' });
+    clearTimeout(timer);
+    if (res.ok) return 'sse';
+  } catch {
+    /* no backend here — static hosting */
+  }
+  return 'sim';
+}
 
 const source = createSource(monitored, register.GROUPS, {
-  mode: initialMode,
+  mode: 'sim',
   intervalMs: 2000,
   streamUrl: './api/stream',
   readingsUrl: './api/readings',
@@ -64,7 +83,6 @@ const ui = createUi({
 });
 
 ui.mountStatic();
-document.getElementById('sourceMode').value = initialMode;
 
 let lastDaylight = isDaylight();
 
@@ -85,18 +103,26 @@ setInterval(() => {
   ui.renderConnection(source.status);
 }, RENDER_MS);
 
+// Start on the simulator immediately so the dashboard is populated on first
+// paint, then switch to the live feed if the probe finds one.
 source.start();
 
-// If the SCADA endpoint never answers, drop to the simulator rather than showing
-// an empty dashboard — and say so, instead of pretending the data is real.
-if (initialMode === 'sse') {
-  setTimeout(() => {
-    if (source.status.messageCount === 0 && source.mode === 'sse') {
-      console.warn('[power-monitor] no SSE data — falling back to the in-browser simulator');
-      source.setMode('sim');
-    }
-  }, SSE_FALLBACK_MS);
-}
+detectSource().then((mode) => {
+  if (mode === 'sse') {
+    source.setMode('sse');
+    // The backend answered /api/health but may still fail to stream. Fall back
+    // rather than leaving the dashboard empty — and say so, instead of
+    // pretending the data is real.
+    setTimeout(() => {
+      if (source.status.messageCount === 0 && source.mode === 'sse') {
+        console.warn('[power-monitor] SCADA endpoint answered but sent no data — using the in-browser simulator');
+        source.setMode('sim');
+      }
+    }, SSE_FALLBACK_MS);
+  } else {
+    console.info('[power-monitor] no SCADA backend at ./api — running the in-browser simulator');
+  }
+});
 
 // Expose for console poking / integration testing.
 window.__power = { register, store, engine, source, ui };

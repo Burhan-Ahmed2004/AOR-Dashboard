@@ -1,0 +1,16 @@
+# Files uploaded to Vercel become PUBLICLY fetchable at their path. Anything not
+# needed to render the dashboard is kept out of the deployment.
+
+# The source asset register. It is not needed at runtime (its data is already
+# compiled into src/register.js) and it should not be downloadable from a public
+# URL such as /AOR%20-%20GE%20(N)%20Maint%20Isld.docx
+*.docx
+
+# Node-only code — a static deployment never executes these.
+server/
+scripts/
+
+# Repo metadata
+.git
+.gitattributes
+.gitignore

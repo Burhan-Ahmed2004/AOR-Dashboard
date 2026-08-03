@@ -1,0 +1,61 @@
+# ---------------------------------------------------------- local-only manifest
+# Kept out of the GitHub repo by request. NOTE: it is still required LOCALLY —
+# it carries "type": "module", without which Node cannot run server/ or scripts/.
+# Anyone cloning this repo must recreate it (see README → "Running from a clone").
+package.json
+
+# ---------------------------------------------------------------- dependencies
+# The project itself has none, but tooling added later will land here.
+node_modules/
+.pnp
+.pnp.js
+.yarn/
+
+# ---------------------------------------------------------------------- logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+logs/
+
+# --------------------------------------------------------------- environment
+# Endpoint URLs, tokens and credentials for the real SCADA feed belong here,
+# never in src/source.js.
+.env
+.env.*
+!.env.example
+
+# -------------------------------------------------------- dashboard exports
+# CSV pulled from the Management view. Operational data, not source code —
+# and it may contain site load figures that shouldn't sit in a repo.
+aor-points-*.csv
+aor-alarms-*.csv
+
+# ------------------------------------------------------------ editors / IDEs
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+
+# ------------------------------------------------------------ OS scratch files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# ------------------------------------------------------------------ temporary
+tmp/
+temp/
+*.tmp
+*.pid
+coverage/
+dist/
+build/
+
+# Word lock files, created while the source register is open in Office
+~$*.docx

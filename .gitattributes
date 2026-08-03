@@ -1,0 +1,33 @@
+# Line endings
+# ------------
+# Normalise every text file to LF in the repository AND in the working copy.
+# Without this, Git stores LF but checks out CRLF on Windows (the "LF will be
+# replaced by CRLF" warning), so the same file looks modified in its entirety
+# the moment anyone edits it from macOS/Linux or a container.
+* text=auto eol=lf
+
+# Explicit for the files this project actually contains.
+*.js    text eol=lf
+*.mjs   text eol=lf
+*.json  text eol=lf
+*.html  text eol=lf
+*.css   text eol=lf
+*.md    text eol=lf
+*.csv   text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+
+# Binary — never diffed, never line-ending converted.
+*.docx  binary
+*.pdf   binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.woff  binary
+*.woff2 binary
+*.zip   binary
+
+# Keep generated/vendored files out of language stats and diff noise.
+*.min.js linguist-generated=true

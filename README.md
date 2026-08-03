@@ -28,9 +28,81 @@ npm run check   # register reconciliation only
 
 No dependencies, no build step. Node 18+.
 
-> Opening `index.html` directly off disk also works — it falls back to an
+### Running from a clone
+
+**`package.json` is deliberately not committed to this repository.** The browser
+dashboard does not need it, but Node does: it carries `"type": "module"`, and
+without it `node server/mock-scada.js` fails with *"Cannot use import statement
+outside a module"*.
+
+After cloning, create it in the project root:
+
+```json
+{
+  "name": "aor-power-load-monitor",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server/mock-scada.js",
+    "check": "node scripts/verify-register.js",
+    "test": "node scripts/verify-register.js && node scripts/test-alarms.js"
+  }
+}
+```
+
+There are no dependencies, so there is nothing to `npm install`.
+
+> Opening `index.html` directly off disk also works — it falls back to the
 > in-browser simulator — but `file://` blocks ES-module loading in some browsers,
 > so the server is the supported way to run it.
+
+---
+
+## Deploying (Vercel)
+
+The dashboard is plain static files, so it deploys with no build step. On
+start-up it probes `./api/health`; if nothing answers it runs the **in-browser
+simulator** instead of showing a false "feed lost" alarm. A static deployment is
+therefore a fully working demo — it just isn't fed by real telemetry.
+
+```bash
+npm i -g vercel
+vercel login
+vercel            # preview deployment
+vercel --prod     # production
+```
+
+Or import the GitHub repo at [vercel.com/new](https://vercel.com/new) — with no
+`package.json` present, Vercel detects a static site automatically. Leave the
+framework preset as **Other**, and both build command and output directory empty.
+
+Two config files control the deployment:
+
+- **`vercel.json`** — security headers, and revalidate-on-load caching for
+  `index.html` and `src/` so a redeploy is picked up immediately.
+- **`.vercelignore`** — keeps `server/`, `scripts/` and **the source `.docx`** out
+  of the upload. Anything deployed is publicly fetchable by URL, and the register
+  document is not needed at runtime (its data is already compiled into
+  `src/register.js`).
+
+> A Vercel deployment is **public by default**. This dashboard embeds the site's
+> asset register — substations, transformer capacity, tube-well locations,
+> building counts. If that shouldn't be on the open internet, put the project
+> behind Vercel's password protection / SSO (Project → Settings → Deployment
+> Protection) before sharing the URL.
+
+### Serving live telemetry from a deployment
+
+A static deployment has no `/api`. To feed it real data, either:
+
+1. point `streamUrl` / `readingsUrl` in `src/app.js` at your SCADA gateway's own
+   host (it must send CORS headers), or
+2. add Vercel serverless functions under `api/` that proxy your gateway — this
+   needs `package.json` with `"type": "module"` committed, since the functions
+   import from `src/`.
+
+Note that Vercel serverless functions have a maximum execution duration, so a
+long-lived SSE stream should use the Edge runtime or the `poll` source mode.
 
 ---
 

@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-density="comfortable">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Power Load Monitor — AOR · GE(N) Maint Isld</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232a78d6'/%3E%3Cpath d='M18 4 9 18h6l-2 10 10-14h-6z' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+/* =========================================================================
+   PALETTE
+   Light and dark are each a SELECTED set of steps validated against their own
+   surface (#fcfcfb / #1a1a19), not an automatic inversion of one another.
+   Status colours are fixed in both modes and are never reused for a series.
+   ========================================================================= */
+:root {
+  color-scheme: light;
+  --surface-1:  #fcfcfb;
+  --surface-2:  #f4f4f1;
+  --page:       #f9f9f7;
+  --ink:        #0b0b0b;
+  --ink-2:      #52514e;
+  --muted:      #898781;
+  --grid:       #e1e0d9;
+  --baseline:   #c3c2b7;
+  --hairline:   rgba(11,11,11,0.10);
+  --series-1:   #2a78d6;   /* categorical slot 1 — the only series hue used */
+  --series-1-soft: rgba(42,120,214,0.10);
+  --success-text: #006300;
+
+  /* Status palette — fixed, never themed, never a series colour. */
+  --st-good:     #0ca30c;
+  --st-warning:  #fab219;
+  --st-serious:  #ec835a;
+  --st-critical: #d03b3b;
+
+  --radius: 10px;
+  --gap: 14px;
+  --root-size: 15px;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface-1:  #1a1a19;
+  --surface-2:  #222221;
+  --page:       #0d0d0d;
+  --ink:        #ffffff;
+  --ink-2:      #c3c2b7;
+  --muted:      #898781;
+  --grid:       #2c2c2a;
+  --baseline:   #383835;
+  --hairline:   rgba(255,255,255,0.10);
+  --series-1:   #3987e5;
+  --series-1-soft: rgba(57,135,229,0.14);
+  --success-text: #0ca30c;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+    color-scheme: dark;
+    --surface-1:#1a1a19; --surface-2:#222221; --page:#0d0d0d;
+    --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --baseline:#383835; --hairline:rgba(255,255,255,0.10);
+    --series-1:#3987e5; --series-1-soft:rgba(57,135,229,0.14); --success-text:#0ca30c;
+  }
+}
+/* Wall-display density — bigger type for a screen read from across a room. */
+:root[data-density="wall"] { --root-size: 18px; --gap: 18px; }
+
+* { box-sizing: border-box; }
+/* `.view { display: grid }` outranks the UA rule for [hidden], which would leave
+   the inactive view stacked underneath the active one. Restore hidden's meaning. */
+[hidden] { display: none !important; }
+html { font-size: var(--root-size); }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--series-1); outline-offset: 2px; border-radius: 4px; }
+
+/* ---------------------------------------------------------------- topbar */
+.topbar {
+  position: sticky; top: 0; z-index: 30;
+  display: flex; align-items: center; gap: var(--gap); flex-wrap: wrap;
+  padding: 10px 18px;
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--hairline);
+}
+.brand { display: flex; flex-direction: column; margin-right: auto; }
+.brand-title { font-weight: 600; font-size: 1rem; letter-spacing: -0.01em; }
+.brand-sub { font-size: 0.72rem; color: var(--muted); }
+.ctl-group { display: flex; align-items: center; gap: 6px; }
+.seg { display: inline-flex; background: var(--surface-2); border: 1px solid var(--hairline); border-radius: 999px; padding: 2px; }
+.seg button {
+  border: 0; background: transparent; color: var(--ink-2);
+  padding: 5px 12px; border-radius: 999px; cursor: pointer; font-size: 0.78rem; font-weight: 500;
+}
+.seg button[aria-pressed="true"] { background: var(--surface-1); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,0.12); }
+.icon-btn {
+  border: 1px solid var(--hairline); background: var(--surface-2); color: var(--ink-2);
+  width: 34px; height: 34px; border-radius: 8px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.icon-btn:hover { color: var(--ink); }
+select.ctl {
+  background: var(--surface-2); color: var(--ink); border: 1px solid var(--hairline);
+  border-radius: 8px; padding: 6px 10px; font-size: 0.78rem;
+}
+
+/* connection pill — the "is this even live?" answer, always on screen */
+.conn { display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 999px;
+        border: 1px solid var(--hairline); background: var(--surface-2); font-size: 0.78rem; }
+.conn .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex: none; }
+.conn[data-state="live"] .dot { background: var(--st-good); animation: beat 2s ease-in-out infinite; }
+.conn[data-state="degraded"] .dot { background: var(--st-warning); }
+.conn[data-state="down"] .dot { background: var(--st-critical); }
+.conn[data-state="connecting"] .dot { background: var(--st-serious); animation: beat 1s ease-in-out infinite; }
+.conn-age { color: var(--muted); font-variant-numeric: tabular-nums; }
+@keyframes beat { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+@media (prefers-reduced-motion: reduce) { .conn .dot { animation: none !important; } }
+
+/* ------------------------------------------------------- feed-down banner */
+.banner {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 18px; font-weight: 500;
+  border-bottom: 1px solid var(--hairline);
+}
+.banner--down { background: color-mix(in oklab, var(--st-critical) 16%, var(--surface-1)); }
+.banner--degraded { background: color-mix(in oklab, var(--st-warning) 20%, var(--surface-1)); }
+.banner svg { flex: none; }
+
+/* ------------------------------------------------------------------ layout */
+.view { padding: var(--gap) 18px 28px; display: grid; gap: var(--gap); grid-template-columns: repeat(12, 1fr); align-content: start; }
+.card {
+  background: var(--surface-1); border: 1px solid var(--hairline);
+  border-radius: var(--radius); padding: 14px 16px; min-width: 0;
+}
+.card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.card-title { font-size: 0.82rem; font-weight: 600; letter-spacing: -0.005em; }
+.card-sub { font-size: 0.72rem; color: var(--muted); }
+.span-3 { grid-column: span 3; } .span-4 { grid-column: span 4; }
+.span-5 { grid-column: span 5; } .span-6 { grid-column: span 6; }
+.span-7 { grid-column: span 7; } .span-8 { grid-column: span 8; }
+.span-12 { grid-column: span 12; }
+@media (max-width: 1100px) {
+  .span-3,.span-4,.span-5,.span-7,.span-8 { grid-column: span 6; }
+}
+@media (max-width: 720px) {
+  .span-3,.span-4,.span-5,.span-6,.span-7,.span-8 { grid-column: span 12; }
+  .view { padding: 12px; }
+}
+
+/* ------------------------------------------------------------ hero figure */
+.hero-label { font-size: 0.78rem; color: var(--ink-2); }
+.hero-value { font-size: 3.1rem; font-weight: 600; line-height: 1.05; letter-spacing: -0.03em; margin: 2px 0 0; }
+.hero-unit { font-size: 1.2rem; font-weight: 500; color: var(--ink-2); margin-left: 6px; }
+.hero-meta { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 10px; font-size: 0.78rem; color: var(--ink-2); }
+.hero-meta b { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+.delta { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; }
+.delta--up { color: var(--ink); } .delta--down { color: var(--ink); }
+
+/* -------------------------------------------------------------- stat tiles */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: var(--gap); }
+.tile { background: var(--surface-1); border: 1px solid var(--hairline); border-radius: var(--radius); padding: 12px 14px; }
+.tile-label { font-size: 0.72rem; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.05em; }
+.tile-value { font-size: 1.6rem; font-weight: 600; line-height: 1.15; margin-top: 4px; letter-spacing: -0.02em; }
+.tile-sub { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+.tile--alarm { border-left: 3px solid var(--st-critical); }
+.tile--warn  { border-left: 3px solid var(--st-warning); }
+.tile--comms { border-left: 3px solid var(--st-serious); }
+.tile--ok    { border-left: 3px solid var(--st-good); }
+
+/* ------------------------------------------------------------ status badge
+   Colour is never the only channel: every badge carries an icon AND a word,
+   and the text itself stays in ink so it always clears contrast. */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+  padding: 2px 8px 2px 6px; border-radius: 999px; font-size: 0.72rem; font-weight: 600;
+  color: var(--ink); border: 1px solid var(--hairline);
+}
+.badge svg { width: 13px; height: 13px; flex: none; }
+.badge--normal   { background: color-mix(in oklab, var(--st-good) 14%, var(--surface-1)); }
+.badge--warning  { background: color-mix(in oklab, var(--st-warning) 22%, var(--surface-1)); }
+.badge--critical { background: color-mix(in oklab, var(--st-critical) 20%, var(--surface-1)); }
+.badge--offline, .badge--stale, .badge--bad { background: color-mix(in oklab, var(--st-serious) 20%, var(--surface-1)); }
+.badge--unmonitored { background: var(--surface-2); color: var(--ink-2); }
+.badge--normal svg   { color: var(--st-good); }
+.badge--warning svg  { color: var(--st-warning); }
+.badge--critical svg { color: var(--st-critical); }
+.badge--offline svg, .badge--stale svg, .badge--bad svg { color: var(--st-serious); }
+
+/* ------------------------------------------------------------------ alarms */
+.alarm-list { display: flex; flex-direction: column; gap: 8px; max-height: 460px; overflow-y: auto; }
+.alarm {
+  display: grid; grid-template-columns: 1fr auto; gap: 4px 10px;
+  padding: 10px 12px; border-radius: 8px; background: var(--surface-2);
+  border-left: 3px solid var(--muted);
+}
+.alarm--critical { border-left-color: var(--st-critical); background: color-mix(in oklab, var(--st-critical) 9%, var(--surface-2)); }
+.alarm--warning  { border-left-color: var(--st-warning);  background: color-mix(in oklab, var(--st-warning) 11%, var(--surface-2)); }
+.alarm--comms    { border-left-color: var(--st-serious);  background: color-mix(in oklab, var(--st-serious) 10%, var(--surface-2)); }
+.alarm--cleared  { opacity: 0.72; border-left-style: dashed; }
+.alarm-top { display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 0.8rem; }
+.alarm-tag { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 0.72rem; color: var(--ink-2); }
+.alarm-msg { grid-column: 1 / -1; font-size: 0.78rem; color: var(--ink-2); }
+.alarm-meta { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.7rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ack-btn {
+  border: 1px solid var(--hairline); background: var(--surface-1); color: var(--ink);
+  border-radius: 6px; padding: 4px 10px; font-size: 0.72rem; font-weight: 600; cursor: pointer;
+  min-height: 28px; align-self: start;
+}
+.ack-btn:hover { background: var(--surface-2); }
+.ack-btn[disabled] { opacity: .5; cursor: default; }
+.acked-mark { display: inline-flex; align-items: center; gap: 4px; font-size: 0.7rem; color: var(--muted); }
+.empty { font-size: 0.8rem; color: var(--muted); padding: 14px 2px; display: flex; align-items: center; gap: 8px; }
+
+/* ------------------------------------------------------------------ charts */
+.chart { position: relative; width: 100%; }
+.chart-svg { display: block; width: 100%; overflow: visible; }
+.gridline { stroke: var(--grid); stroke-width: 1; }
+.axis-label { fill: var(--muted); font-size: 10.5px; font-variant-numeric: tabular-nums; }
+.line-mark { stroke: var(--series-1); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.area-fill { fill: var(--series-1); fill-opacity: 0.10; stroke: none; }
+.end-dot { fill: var(--series-1); stroke: var(--surface-1); stroke-width: 2; }
+.ref-line { stroke-width: 1; fill: none; stroke-dasharray: 4 4; }
+.ref-typical  { stroke: var(--muted); }
+.ref-warn     { stroke: var(--st-warning); }
+.ref-alarm    { stroke: var(--st-critical); }
+.ref-rated    { stroke: var(--baseline); }
+.ref-label { fill: var(--muted); font-size: 10px; }
+.crosshair { stroke: var(--baseline); stroke-width: 1; }
+.crosshair-dot { fill: var(--series-1); stroke: var(--surface-1); stroke-width: 2; }
+.chart-hit { cursor: crosshair; }
+.chart-tip {
+  position: absolute; pointer-events: none; z-index: 5;
+  background: var(--surface-1); border: 1px solid var(--hairline); border-radius: 8px;
+  padding: 8px 10px; font-size: 0.74rem; box-shadow: 0 6px 20px rgba(0,0,0,.22); min-width: 150px;
+}
+.tip-time { color: var(--muted); font-variant-numeric: tabular-nums; margin-bottom: 4px; }
+.tip-row { display: flex; justify-content: space-between; gap: 14px; }
+.tip-key { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); }
+.tip-val { font-weight: 600; font-variant-numeric: tabular-nums; }
+.tip-swatch { width: 9px; height: 9px; border-radius: 2px; background: var(--series-1); display: inline-block; }
+.tip-swatch--typical { background: var(--muted); }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.72rem; color: var(--ink-2); margin-top: 8px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 14px; height: 0; border-top: 2px solid var(--series-1); display: inline-block; }
+.legend i.k-typical { border-top: 1px dashed var(--muted); }
+.legend i.k-warn { border-top: 1px dashed var(--st-warning); }
+.legend i.k-alarm { border-top: 1px dashed var(--st-critical); }
+
+/* sparkline */
+.spark { display: block; }
+.spark-line { stroke: var(--muted); stroke-width: 1.5; fill: none; stroke-linejoin: round; }
+.spark-dot { fill: var(--series-1); stroke: var(--surface-1); stroke-width: 1.5; }
+.spark-ref { stroke: var(--baseline); stroke-width: 1; stroke-dasharray: 3 3; }
+
+/* --------------------------------------------------------------------- SLD */
+.sld-svg { width: 100%; height: auto; }
+.sld-bus { stroke: var(--baseline); stroke-width: 3; stroke-linecap: round; }
+.sld-drop { stroke: var(--baseline); stroke-width: 1.5; }
+.sld-vcb { fill: var(--surface-1); stroke: var(--baseline); stroke-width: 1.5; }
+.sld-caption { fill: var(--muted); font-size: 11px; }
+.sld-box { fill: var(--surface-2); stroke: var(--hairline); stroke-width: 1.5; }
+.sld-name { fill: var(--ink); font-size: 13px; font-weight: 600; }
+.sld-tag { fill: var(--muted); font-size: 10.5px; font-family: ui-monospace, Consolas, monospace; }
+.sld-load { fill: var(--ink); font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.sld-cap { fill: var(--muted); font-size: 10.5px; font-variant-numeric: tabular-nums; }
+.sld-track { fill: color-mix(in oklab, var(--series-1) 18%, var(--surface-1)); }
+.sld-fill { fill: var(--series-1); }
+.sld-node--warning .sld-box  { stroke: var(--st-warning); stroke-width: 2; }
+.sld-node--warning .sld-fill { fill: var(--st-warning); }
+.sld-node--warning .sld-track{ fill: color-mix(in oklab, var(--st-warning) 22%, var(--surface-1)); }
+.sld-node--critical .sld-box  { stroke: var(--st-critical); stroke-width: 2; }
+.sld-node--critical .sld-fill { fill: var(--st-critical); }
+.sld-node--critical .sld-track{ fill: color-mix(in oklab, var(--st-critical) 20%, var(--surface-1)); }
+
+/* ------------------------------------------------------------ group cards */
+.group-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px,1fr)); gap: var(--gap); }
+.gcard { background: var(--surface-1); border: 1px solid var(--hairline); border-radius: var(--radius); padding: 12px 14px; text-align: left; cursor: pointer; }
+.gcard:hover { border-color: var(--baseline); }
+.gcard-top { display: flex; align-items: center; gap: 8px; }
+.gcard-icon { color: var(--muted); flex: none; }
+.gcard-name { font-size: 0.82rem; font-weight: 600; }
+.gcard-zone { font-size: 0.7rem; color: var(--muted); }
+.gcard-value { font-size: 1.35rem; font-weight: 600; margin-top: 8px; letter-spacing: -0.02em; }
+.gcard-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; }
+.gcard-meta { font-size: 0.7rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* meter: fill carries severity, track is a lighter step of the same ramp */
+.meter { height: 6px; border-radius: 3px; overflow: hidden; margin-top: 8px;
+         background: color-mix(in oklab, var(--series-1) 18%, var(--surface-1)); }
+.meter > i { display: block; height: 100%; background: var(--series-1); border-radius: 3px; transition: width .35s ease; }
+.meter--warning  { background: color-mix(in oklab, var(--st-warning) 24%, var(--surface-1)); }
+.meter--warning > i  { background: var(--st-warning); }
+.meter--critical { background: color-mix(in oklab, var(--st-critical) 20%, var(--surface-1)); }
+.meter--critical > i { background: var(--st-critical); }
+.meter--offline  { background: color-mix(in oklab, var(--st-serious) 20%, var(--surface-1)); }
+.meter--offline > i  { background: var(--st-serious); }
+
+/* ------------------------------------------------------------------ filters */
+.filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+.filters input[type="search"], .filters select {
+  background: var(--surface-2); color: var(--ink); border: 1px solid var(--hairline);
+  border-radius: 8px; padding: 7px 10px; font-size: 0.78rem; min-height: 34px;
+}
+.filters input[type="search"] { min-width: 220px; flex: 1 1 220px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; background: var(--surface-2); border: 1px solid var(--hairline);
+        border-radius: 999px; padding: 6px 12px; font-size: 0.76rem; cursor: pointer; min-height: 34px; }
+.chip[aria-pressed="true"] { background: color-mix(in oklab, var(--series-1) 16%, var(--surface-1)); border-color: var(--series-1); }
+.result-count { font-size: 0.74rem; color: var(--muted); margin-left: auto; font-variant-numeric: tabular-nums; }
+
+/* ------------------------------------------------------------------- table */
+.table-wrap { overflow-x: auto; }
+table.dt { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+table.dt th {
+  position: sticky; top: 0; z-index: 2; background: var(--surface-1);
+  text-align: left; font-size: 0.68rem; font-weight: 600; color: var(--ink-2);
+  text-transform: uppercase; letter-spacing: 0.05em; padding: 8px 10px;
+  border-bottom: 1px solid var(--hairline); white-space: nowrap; cursor: pointer; -webkit-user-select: none; user-select: none;
+}
+table.dt th[aria-sort="ascending"]::after { content: " ▲"; color: var(--muted); }
+table.dt th[aria-sort="descending"]::after { content: " ▼"; color: var(--muted); }
+table.dt td { padding: 7px 10px; border-bottom: 1px solid var(--grid); vertical-align: middle; }
+table.dt tbody tr { cursor: pointer; }
+table.dt tbody tr:hover { background: var(--surface-2); }
+table.dt tbody tr[data-sev="critical"] { box-shadow: inset 3px 0 0 var(--st-critical); }
+table.dt tbody tr[data-sev="warning"]  { box-shadow: inset 3px 0 0 var(--st-warning); }
+table.dt tbody tr[data-q="offline"], table.dt tbody tr[data-q="bad"] { box-shadow: inset 3px 0 0 var(--st-serious); }
+.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tag { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 0.74rem; color: var(--ink-2); white-space: nowrap; }
+.name-cell { min-width: 190px; }
+.name-main { font-weight: 500; }
+.name-sub { font-size: 0.7rem; color: var(--muted); }
+.assumed { font-size: 0.62rem; color: var(--muted); border: 1px solid var(--hairline); border-radius: 4px; padding: 0 4px; margin-left: 4px; vertical-align: 1px; }
+
+/* ------------------------------------------------------------------ drawer */
+.drawer {
+  position: fixed; inset: 0 0 0 auto; width: min(560px, 100%); z-index: 40;
+  background: var(--surface-1); border-left: 1px solid var(--hairline);
+  box-shadow: -12px 0 40px rgba(0,0,0,.35); overflow-y: auto; padding: 16px 18px 28px;
+}
+.drawer[hidden] { display: none; }
+.drawer-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+.drawer h2 { font-size: 1.05rem; margin: 0; letter-spacing: -0.01em; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 0.78rem; margin: 12px 0; }
+.kv dt { color: var(--muted); } .kv dd { margin: 0; font-variant-numeric: tabular-nums; }
+.scrim { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 39; }
+.scrim[hidden] { display: none; }
+
+/* ------------------------------------------------------------------- bars */
+.bar-row { display: grid; grid-template-columns: minmax(120px, 1.2fr) 3fr auto; gap: 10px; align-items: center; padding: 4px 0; }
+.bar-label { font-size: 0.76rem; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar-track { height: 12px; border-radius: 3px; background: color-mix(in oklab, var(--series-1) 15%, var(--surface-1)); overflow: hidden; }
+.bar-fill { height: 100%; background: var(--series-1); border-radius: 0 4px 4px 0; transition: width .35s ease; }
+.bar-fill--warning { background: var(--st-warning); }
+.bar-fill--critical { background: var(--st-critical); }
+.bar-value { font-size: 0.76rem; font-variant-numeric: tabular-nums; font-weight: 600; min-width: 78px; text-align: right; }
+
+/* ------------------------------------------------------------------- misc */
+.note { font-size: 0.72rem; color: var(--muted); line-height: 1.55; }
+.gap-list { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.gap-item { display: flex; gap: 8px; font-size: 0.74rem; color: var(--ink-2); }
+.gap-item svg { flex: none; margin-top: 2px; }
+.gap-item[data-sev="warning"] svg { color: var(--st-warning); }
+.gap-item[data-sev="info"] svg { color: var(--muted); }
+.foot { padding: 16px 18px 30px; border-top: 1px solid var(--hairline); }
+.stale-veil { opacity: .55; transition: opacity .2s ease; }
+.sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+</style>
+</head>
+<body>
+
+<!-- Icon sprite. Every status is icon + label, so colour is never load-bearing. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
+  <symbol id="i-critical" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 2h8.2L22 7.9v8.2L16.1 22H7.9L2 16.1V7.9z"/><path d="M12 8v5M12 16h.01"/></symbol>
+  <symbol id="i-offline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 2 20 20"/><path d="M5 12.5a10 10 0 0 1 4-2.4M1 8.5a16 16 0 0 1 5-3.2M23 8.5a16 16 0 0 0-9.5-4.3M19 12.5a10 10 0 0 0-2.6-1.8"/><path d="M8.8 16.1a5 5 0 0 1 6.4 0M12 20h.01"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 5v14M15 5v14"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l13-7.5z"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 11l5 5 5-5M4 21h16"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></symbol>
+  <symbol id="i-building" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h9v17M13 21V9h7v12M3 21h18"/><path d="M7 8h2M7 12h2M7 16h2M16 13h1M16 17h1"/></symbol>
+  <symbol id="i-landmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M4 10h16M12 3 3 8h18z"/><path d="M6 10v11M10 10v11M14 10v11M18 10v11"/></symbol>
+  <symbol id="i-health" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2-5 3 10 2.5-5H21"/></symbol>
+  <symbol id="i-water" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s6 6.4 6 10.5A6 6 0 0 1 6 13.5C6 9.4 12 3 12 3z"/></symbol>
+  <symbol id="i-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.4.9 1 .9 1.6V16h5.2v-.5c0-.6.3-1.2.9-1.6A6 6 0 0 0 12 3z"/></symbol>
+  <symbol id="i-lift" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M12 3v18M9.5 8 8 6.2 6.5 8M6.5 16 8 17.8 9.5 16"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+</svg>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-title">Power Load Monitor</span>
+    <span class="brand-sub">AOR · GE(N) Maint Isld — <span id="pointCount"></span></span>
+  </div>
+
+  <div class="conn" id="conn" data-state="connecting" role="status" aria-live="polite">
+    <span class="dot"></span>
+    <span id="connText">Connecting…</span>
+    <span class="conn-age" id="connAge"></span>
+  </div>
+
+  <div class="ctl-group">
+    <label class="sr-only" for="sourceMode">Data source</label>
+    <select class="ctl" id="sourceMode" title="Data source">
+      <option value="sim">Source: simulator (in-browser)</option>
+      <option value="sse">Source: SCADA stream (SSE)</option>
+      <option value="poll">Source: SCADA poll (REST)</option>
+    </select>
+    <button type="button" class="icon-btn" id="playPause" title="Pause / resume feed" aria-label="Pause feed"><svg width="16" height="16"><use href="#i-pause"/></svg></button>
+  </div>
+
+  <div class="seg" role="group" aria-label="View">
+    <button type="button" id="tabOps" aria-pressed="true">Operations</button>
+    <button type="button" id="tabMgmt" aria-pressed="false">Management</button>
+  </div>
+
+  <div class="ctl-group">
+    <button type="button" class="icon-btn" id="densityBtn" title="Toggle wall-display size" aria-label="Toggle wall-display size"><b style="font-size:.8rem">A</b></button>
+    <button type="button" class="icon-btn" id="themeBtn" title="Toggle light / dark" aria-label="Toggle light or dark theme"><svg width="16" height="16"><use href="#i-sun"/></svg></button>
+  </div>
+</header>
+
+<div id="connBanner" class="banner" hidden></div>
+
+<!-- ============================== OPERATIONS ============================== -->
+<main class="view" id="viewOps">
+
+  <!-- Hero + alarm tiles: what changes most, top-left. -->
+  <section class="card span-5" aria-labelledby="heroLabel">
+    <div class="hero-label" id="heroLabel">Net site demand — all feeders</div>
+    <div class="hero-value"><span id="heroValue">—</span><span class="hero-unit">kW</span></div>
+    <div class="hero-meta">
+      <span>vs typical now <b id="heroDelta">—</b></span>
+      <span>typical <b id="heroExpected">—</b></span>
+    </div>
+    <div class="hero-meta">
+      <span>session peak <b id="heroPeak">—</b></span>
+      <span>rated <b id="heroRated">—</b></span>
+      <span>solar offset <b id="heroSolar">—</b></span>
+    </div>
+    <div class="meter" id="heroMeter"><i style="width:0%"></i></div>
+    <div class="note" style="margin-top:6px">Net = measured load − solar generation. Rated demand is an estimate, not a measurement.</div>
+  </section>
+
+  <section class="span-7">
+    <div class="tiles">
+      <div class="tile tile--alarm">
+        <div class="tile-label">Over limit</div>
+        <div class="tile-value" id="kpiCritical">0</div>
+        <div class="tile-sub" id="kpiCriticalSub">points above alarm limit</div>
+      </div>
+      <div class="tile tile--warn">
+        <div class="tile-label">Approaching limit</div>
+        <div class="tile-value" id="kpiWarning">0</div>
+        <div class="tile-sub">above warning limit</div>
+      </div>
+      <div class="tile tile--comms">
+        <div class="tile-label">Not reporting</div>
+        <div class="tile-value" id="kpiOffline">0</div>
+        <div class="tile-sub">offline or bad quality</div>
+      </div>
+      <div class="tile tile--ok">
+        <div class="tile-label">Unacknowledged</div>
+        <div class="tile-value" id="kpiUnacked">0</div>
+        <div class="tile-sub" id="kpiUnackedSub">needing operator action</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card span-8">
+    <div class="card-head">
+      <div>
+        <div class="card-title">Net site demand</div>
+        <div class="card-sub" id="trendSub">last samples · smoothed</div>
+      </div>
+    </div>
+    <div id="siteChart"></div>
+    <div class="legend">
+      <span><i></i>Net demand</span>
+      <span><i class="k-typical"></i>Typical for this hour</span>
+    </div>
+  </section>
+
+  <section class="card span-4" aria-labelledby="alarmsTitle">
+    <div class="card-head">
+      <div>
+        <div class="card-title" id="alarmsTitle">Active alarms</div>
+        <div class="card-sub" id="alarmsSub">latched until acknowledged</div>
+      </div>
+      <button type="button" class="ack-btn" id="ackAll">Ack all</button>
+    </div>
+    <div class="alarm-list" id="alarmList"></div>
+  </section>
+
+  <section class="card span-8">
+    <div class="card-head">
+      <div>
+        <div class="card-title">Single-line feeder diagram</div>
+        <div class="card-sub">3 feeders · 3 substations · 109 transformers (18,530 kVA installed)</div>
+      </div>
+    </div>
+    <div id="sld"></div>
+  </section>
+
+  <section class="card span-4">
+    <div class="card-head"><div class="card-title">Register data gaps</div></div>
+    <ul class="gap-list" id="gapList"></ul>
+  </section>
+
+  <section class="span-12">
+    <div class="card-head"><div class="card-title">Load groups</div><div class="card-sub">click to filter the point table</div></div>
+    <div class="group-grid" id="groupGrid"></div>
+  </section>
+
+  <section class="card span-12" id="pointsSection">
+    <div class="card-head">
+      <div>
+        <div class="card-title">Monitored points</div>
+        <div class="card-sub">every location, its live consumption and its limit — click a row for detail</div>
+      </div>
+    </div>
+    <div class="filters">
+      <label class="sr-only" for="q">Search points</label>
+      <input type="search" id="q" placeholder="Search tag, name or location…">
+      <label class="sr-only" for="groupFilter">Group</label>
+      <select id="groupFilter"><option value="">All groups</option></select>
+      <label class="sr-only" for="subFilter">Substation</label>
+      <select id="subFilter"><option value="">All substations</option></select>
+      <button type="button" class="chip" id="onlyProblems" aria-pressed="false">Only points needing attention</button>
+      <span class="result-count" id="resultCount"></span>
+    </div>
+    <div class="table-wrap">
+      <table class="dt" id="pointTable">
+        <thead>
+          <tr>
+            <th data-sort="id" scope="col">Tag</th>
+            <th data-sort="name" scope="col">Location</th>
+            <th data-sort="value" class="num" scope="col">Now</th>
+            <th data-sort="expected" class="num" scope="col">Typical</th>
+            <th data-sort="delta" class="num" scope="col">vs typical</th>
+            <th data-sort="limit" class="num" scope="col">Limit</th>
+            <th data-sort="pct" class="num" scope="col">% of limit</th>
+            <th scope="col">Trend</th>
+            <th data-sort="severity" scope="col">Status</th>
+            <th data-sort="age" class="num" scope="col">Updated</th>
+          </tr>
+        </thead>
+        <tbody id="pointBody"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<!-- ============================== MANAGEMENT ============================== -->
+<main class="view" id="viewMgmt" hidden>
+  <section class="card span-4">
+    <div class="card-head"><div class="card-title">Session summary</div></div>
+    <dl class="kv" id="mgmtSummary"></dl>
+    <div class="ctl-group" style="margin-top:10px; flex-wrap:wrap">
+      <button type="button" class="ack-btn" id="csvPoints"><svg width="13" height="13" style="vertical-align:-2px"><use href="#i-download"/></svg> Points CSV</button>
+      <button type="button" class="ack-btn" id="csvAlarms"><svg width="13" height="13" style="vertical-align:-2px"><use href="#i-download"/></svg> Alarm log CSV</button>
+    </div>
+  </section>
+
+  <section class="card span-8">
+    <div class="card-head">
+      <div><div class="card-title">Consumption by group</div><div class="card-sub">current demand · bar colour marks groups holding an alarm</div></div>
+    </div>
+    <div id="mgmtGroupBars"></div>
+  </section>
+
+  <section class="card span-6">
+    <div class="card-head"><div class="card-title">Energy this session by group</div><div class="card-sub">accumulated kWh</div></div>
+    <div id="mgmtEnergyBars"></div>
+  </section>
+
+  <section class="card span-6">
+    <div class="card-head"><div class="card-title">Substation utilisation</div><div class="card-sub">demand against installed transformer capacity</div></div>
+    <div id="mgmtSubBars"></div>
+  </section>
+
+  <section class="card span-12">
+    <div class="card-head">
+      <div><div class="card-title">Alarm log</div><div class="card-sub">every episode: raised, acknowledged, cleared — nothing disappears silently</div></div>
+    </div>
+    <div class="table-wrap">
+      <table class="dt">
+        <thead><tr>
+          <th scope="col">Tag</th><th scope="col">Location</th><th scope="col">Type</th><th scope="col">Severity</th>
+          <th class="num" scope="col">Peak</th><th class="num" scope="col">Limit</th>
+          <th scope="col">Raised</th><th scope="col">Acknowledged</th><th scope="col">Cleared</th><th class="num" scope="col">Duration</th>
+        </tr></thead>
+        <tbody id="alarmLogBody"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" hidden role="dialog" aria-modal="true" aria-labelledby="drawerTitle"></aside>
+
+<footer class="foot">
+  <p class="note" id="footNote"></p>
+</footer>
+
+<script type="module" src="./src/app.js"></script>
+</body>
+</html>

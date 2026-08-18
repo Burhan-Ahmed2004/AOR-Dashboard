@@ -17,6 +17,8 @@ import { createSource } from './source.js';
 import { createUi } from './ui.js';
 import { createOverview } from './overview.js';
 import { createElectricalModel } from './electrical.js';
+import { createSwitchgearModel } from './switchgear.js';
+import { createPages } from './pages.js';
 import { isDaylight } from './simulator.js';
 import { dateTime } from './format.js';
 
@@ -43,6 +45,7 @@ const engine = createAlarmEngine({
   reArmMs: 90000,
 });
 const electrical = createElectricalModel(register.SUBSTATIONS);
+const switchgear = createSwitchgearModel(register);
 
 /**
  * Pick a data source by ASKING whether a SCADA backend is there, rather than
@@ -81,33 +84,35 @@ const ctx = {
   store,
   engine,
   electrical,
+  switchgear,
   source,
   register,
 };
 
 const ui = createUi(ctx);
 const overview = createOverview(ctx);
+const pages = createPages(ctx);
 
 ui.mountStatic();
 overview.mount();
+pages.mount();
 
 // ---------------------------------------------------------------------- nav
 const VIEWS = {
   overview: 'view-overview',
+  flow: 'view-flow',
   load: 'view-load',
-  alarms: 'view-alarms',
+  voltage: 'view-voltage',
+  energy: 'view-energy',
+  solar: 'view-solar',
   transformers: 'view-transformers',
+  breakers: 'view-breakers',
+  alarms: 'view-alarms',
   reports: 'view-reports',
+  forecast: 'view-forecast',
   settings: 'view-settings',
 };
-const SOON = {
-  flow: ['Power Flow', 'A live power-flow schematic needs per-DB metering. The register lists 475 DBs but gives no names, locations or loads for them.'],
-  voltage: ['Voltage & Frequency', 'A dedicated voltage and frequency page needs real measurements. The register contains none — the overview shows the simulated model instead.'],
-  energy: ['Energy Analytics', 'Energy analytics needs metered kWh over time. There is no historian and no energy data in the register.'],
-  solar: ['Solar', 'A solar performance page needs per-array output and irradiance. The register states 13 solar systems but gives no ratings or locations.'],
-  breakers: ['Switchgear', 'Breaker status needs live position telemetry. The register lists 8 VCBs at 11 kV but records no open/closed state.'],
-  forecast: ['Forecasting', 'Forecasting needs historical consumption to train on. None exists yet — this becomes possible once real telemetry has been recorded.'],
-};
+const SOON = {}; // every nav destination is now a real page
 
 let currentView = 'overview';
 
@@ -164,6 +169,7 @@ function render() {
   );
   electrical.update(loadBySub, store.site.loadKw, store.site.generationKw, now);
   engine.update(monitored, store.readingsForEngine(), now, { daylight: lastDaylight });
+  switchgear.update(now, loadBySub, substationSeverity);
 
   document.getElementById('clockNow').textContent = new Date().toLocaleTimeString('en-GB', { hour12: false });
   document.getElementById('dateNow').textContent = new Date().toLocaleDateString('en-GB', {
@@ -171,7 +177,9 @@ function render() {
   });
 
   ui.update();
+  // Only the page on screen is rendered; the others are not in the DOM flow.
   if (currentView === 'overview') overview.update();
+  else if (pages.has(currentView)) pages.update(currentView);
   ui.renderConnection(source.status);
 }
 
@@ -199,4 +207,16 @@ detectSource().then((mode) => {
   }
 });
 
-window.__power = { register, store, engine, electrical, source, ui, overview, setView };
+/** Worst alarm severity among the points fed by a substation. */
+function substationSeverity(subId) {
+  let worst = 'normal';
+  for (const p of monitored) {
+    if (p.substationId !== subId) continue;
+    const sev = engine.severityOf(p.id);
+    if (sev === 'critical') return 'critical';
+    if (sev === 'warning') worst = 'warning';
+  }
+  return worst;
+}
+
+window.__power = { register, store, engine, electrical, switchgear, source, ui, overview, pages, setView };

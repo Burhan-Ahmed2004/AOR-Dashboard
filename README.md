@@ -83,15 +83,24 @@ A left nav switches between them. The layout fits **390 px phones through
 | Screen | What it shows |
 |---|---|
 | **Overview** | 6-KPI electrical strip (MW / MVAR / PF / Hz / kV / kWh), load trend vs typical, active alarms, power-distribution donut, load by category, energy gauge and summary, 11 kV single-line diagram, 3-phase voltage profile with statutory limits, secondary metrics, register data gaps |
+| **Power Flow** | Sankey-style flow from source through the 11 kV bus to substations to load groups, with link thickness proportional to power; losses and delivery efficiency; feeder loading against installed capacity |
 | **Load Monitoring** | Every monitored location: tag, live kW, typical, vs typical, limit, % of limit, trend, status, age. Searchable, sortable, filterable. Click a row for its trend with limit lines drawn on it, plus its alarm history |
-| **Alarms & Events** | Active alarms plus the full log — raised / acknowledged / cleared, nothing disappears silently |
+| **Voltage & Frequency** | System frequency against the 49.5–50.5 Hz band, per-substation 3-phase L-L voltage with statutory limits, worst phase imbalance, and a per-substation table of voltage / imbalance / current / PF / kVAr |
+| **Energy Analytics** | Energy consumed, average and peak demand, load factor; energy mix (import vs solar vs losses); load-duration curve; energy by group; top-10 consumers |
+| **Solar** | Fleet output against installed capacity with an expected-output marker, performance ratio, generation trend vs expected, and a per-array table with under-output status |
 | **Transformers** | The 109-unit fleet and its 18,530 kVA — entirely register-derived, no simulation |
+| **Switchgear** | Status grid for the 8 VCBs at 11 kV across their four register-named sites, feeder loading, and a distribution-board summary |
+| **Alarms & Events** | Active alarms plus the full log — raised / acknowledged / cleared, nothing disappears silently |
 | **Reports** | Session summary, consumption and energy by group, substation utilisation, CSV export |
+| **Forecasting** | 24-hour demand projection with a confidence band widening by horizon, forecast peak and headroom against firm capacity, and a forecast-points table |
 | **Settings** | Full data-provenance statement and the register reconciliation gaps |
 
-Sections needing data that does not exist yet (Power Flow, Voltage & Frequency,
-Energy Analytics, Solar, Switchgear, Forecasting) are present in the nav and
-state plainly what each would require.
+Every nav destination is a real page. Where a page would need data the register
+does not contain, it says so on the page rather than inventing it — the
+Forecasting page states plainly that it is a profile-based projection and not a
+trained prediction, because no historical consumption exists to train on, and
+the Switchgear page notes that breaker positions are simulated while the device
+population and its four sites come from the document.
 
 Light/dark themes, plus a **wall-display density** toggle (the `A` button) that
 enlarges everything for a screen read from across a room.
@@ -284,10 +293,13 @@ src/
   limits.js             alarm engine
   store.js              history, EMA smoothing, roll-ups
   electrical.js         derived V / I / PF / Hz / kVAR / energy     <- all SIM
-  overview.js           the overview screen + transformers page
+  switchgear.js         breaker / feeder / DB state model           <- positions SIM
+  overview.js           overview screen + transformers page
+  pages.js              flow / voltage / energy / solar / switchgear / forecast
   ui.js                 point table, alarms, drawer, reports
   charts.js             trend / sparkline / bars
   charts-power.js       donut / gauge / voltage profile / SLD
+  charts-pages.js       power flow / status grid / forecast band / duration curve
   format.js             units and precision
   simulator.js          stand-in feed - delete once live
 server/mock-scada.js    zero-dep server: static + /api/readings + /api/stream + /api/points + /api/health

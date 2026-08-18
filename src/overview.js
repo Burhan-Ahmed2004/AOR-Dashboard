@@ -264,16 +264,16 @@ export function createOverview(ctx) {
     setHtml(
       $('bottomMetrics'),
       [
-        ['i-leaf', 'CO&#8322; avoided', `${(e.co2AvoidedKg / 1000).toFixed(3)} t`, 'sim'],
-        ['i-warn', 'Distribution losses', F.kwh(e.lossesTodayKwh), 'sim'],
-        ['i-shield', 'System efficiency', `${e.efficiencyPct.toFixed(1)}%`, 'sim'],
-        ['i-plug', 'Connected capacity', `${mw(connectedKw, 1)} MW`, 'reg'],
-        ['i-peak', 'Max demand', `${mw(e.maxDemandKw)} MW`, 'sim'],
-        ['i-target', 'Peak current', `${(e.currentA || 0).toFixed(0)} A`, 'sim'],
+        ['i-leaf', 'CO&#8322; avoided', `${(e.co2AvoidedKg / 1000).toFixed(3)} t`, 'sim', '--cat-3'],
+        ['i-warn', 'Distribution losses', F.kwh(e.lossesTodayKwh), 'sim', '--st-warning'],
+        ['i-shield', 'System efficiency', `${e.efficiencyPct.toFixed(1)}%`, 'sim', '--cat-3'],
+        ['i-plug', 'Connected capacity', `${mw(connectedKw, 1)} MW`, 'reg', '--cat-1'],
+        ['i-peak', 'Max demand', `${mw(e.maxDemandKw)} MW`, 'sim', '--cat-2'],
+        ['i-target', 'Peak current', `${(e.currentA || 0).toFixed(0)} A`, 'sim', '--cat-5'],
       ]
         .map(
-          ([ic, label, value, prov]) =>
-            `<div class="metric"><span class="metric-ico">${icon(ic, 15)}</span>` +
+          ([ic, label, value, prov, chip]) =>
+            `<div class="metric"><span class="metric-ico" style="--chip:var(${chip})">${icon(ic, 16)}</span>` +
             `<div class="metric-body"><div class="metric-v" title="${value}">${value}</div>` +
             `<div class="metric-l" title="${label.replace(/&#8322;/g, "2")}">${label}` +
             `<span class="prov prov--${prov}">${prov}</span></div></div></div>`

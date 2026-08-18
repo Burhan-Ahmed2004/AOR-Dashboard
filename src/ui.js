@@ -122,7 +122,7 @@ export function createUi(ctx) {
       .map(
         (g) => `<button class="gcard" data-group="${g.id}" type="button">
         <div class="gcard-top">
-          <span class="gcard-icon">${icon(`i-${g.icon}`, 17)}</span>
+          <span class="gcard-icon" style="--chip:var(--cat-1)">${icon(`i-${g.icon}`, 16)}</span>
           <span><span class="gcard-name">${F.escapeHtml(g.name)}</span><br><span class="gcard-zone">${F.escapeHtml(g.zone)}</span></span>
         </div>
         <div class="gcard-value" data-f="value">—</div>

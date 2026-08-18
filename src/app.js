@@ -1,13 +1,13 @@
 /**
  * APP — wiring
  * ============
- *   source  →  store (smooth + roll up)  →  alarm engine (limits)  →  ui
+ *   source -> store (smooth + roll up) -> electrical model -> alarm engine -> ui
  *
  * The render loop is deliberately DECOUPLED from the data rate: readings are
  * folded in whenever they arrive, but the screen repaints on a fixed 1 s tick.
- * That means a fast feed cannot thrash the DOM, and — more importantly — a feed
- * that STOPS still repaints, so staleness, offline meters and a dead backend
- * surface on their own instead of the UI silently freezing on the last value.
+ * A fast feed cannot thrash the DOM, and — more importantly — a feed that STOPS
+ * still repaints, so staleness, offline meters and a dead backend surface on
+ * their own instead of the UI silently freezing on the last value.
  */
 
 import * as register from './register.js';
@@ -15,12 +15,14 @@ import { createStore } from './store.js';
 import { createAlarmEngine } from './limits.js';
 import { createSource } from './source.js';
 import { createUi } from './ui.js';
+import { createOverview } from './overview.js';
+import { createElectricalModel } from './electrical.js';
 import { isDaylight } from './simulator.js';
+import { dateTime } from './format.js';
 
 const RENDER_MS = 1000;
 const SSE_FALLBACK_MS = 6000;
 
-// Restore operator preferences before first paint.
 try {
   const t = localStorage.getItem('pld-theme');
   if (t) document.documentElement.dataset.theme = t;
@@ -40,14 +42,14 @@ const engine = createAlarmEngine({
   offlineAfterMs: 40000,
   reArmMs: 90000,
 });
+const electrical = createElectricalModel(register.SUBSTATIONS);
 
 /**
  * Pick a data source by ASKING whether a SCADA backend is there, rather than
  * assuming one because we happen to be served over http. On static hosting
- * (Vercel, GitHub Pages, any plain web server) there is no /api, and guessing
- * `sse` would park the dashboard on a "Feed lost" banner for several seconds
- * before falling back — a false alarm on first paint is exactly what this
- * dashboard is supposed to avoid.
+ * there is no /api, and guessing `sse` would park the dashboard on a
+ * "Feed lost" banner — a false alarm on first paint is exactly what this
+ * dashboard exists to avoid.
  */
 const servedOverHttp = location.protocol === 'http:' || location.protocol === 'https:';
 
@@ -72,18 +74,74 @@ const source = createSource(monitored, register.GROUPS, {
   readingsUrl: './api/readings',
 });
 
-const ui = createUi({
+const ctx = {
   points: allPoints,
   groups: register.GROUPS,
   substations: register.SUBSTATIONS,
   store,
   engine,
+  electrical,
   source,
   register,
-});
+};
+
+const ui = createUi(ctx);
+const overview = createOverview(ctx);
 
 ui.mountStatic();
+overview.mount();
 
+// ---------------------------------------------------------------------- nav
+const VIEWS = {
+  overview: 'view-overview',
+  load: 'view-load',
+  alarms: 'view-alarms',
+  transformers: 'view-transformers',
+  reports: 'view-reports',
+  settings: 'view-settings',
+};
+const SOON = {
+  flow: ['Power Flow', 'A live power-flow schematic needs per-DB metering. The register lists 475 DBs but gives no names, locations or loads for them.'],
+  voltage: ['Voltage & Frequency', 'A dedicated voltage and frequency page needs real measurements. The register contains none — the overview shows the simulated model instead.'],
+  energy: ['Energy Analytics', 'Energy analytics needs metered kWh over time. There is no historian and no energy data in the register.'],
+  solar: ['Solar', 'A solar performance page needs per-array output and irradiance. The register states 13 solar systems but gives no ratings or locations.'],
+  breakers: ['Switchgear', 'Breaker status needs live position telemetry. The register lists 8 VCBs at 11 kV but records no open/closed state.'],
+  forecast: ['Forecasting', 'Forecasting needs historical consumption to train on. None exists yet — this becomes possible once real telemetry has been recorded.'],
+};
+
+let currentView = 'overview';
+
+function setView(name) {
+  const target = VIEWS[name];
+  for (const id of Object.values(VIEWS)) {
+    const n = document.getElementById(id);
+    if (n) n.hidden = true;
+  }
+  const soonView = document.getElementById('view-soon');
+  if (target) {
+    soonView.hidden = true;
+    document.getElementById(target).hidden = false;
+  } else {
+    const [title, text] = SOON[name] || ['Not yet built', ''];
+    document.getElementById('soonTitle').textContent = title;
+    document.getElementById('soonText').textContent = text;
+    soonView.hidden = false;
+  }
+  for (const btn of document.querySelectorAll('#navList button')) {
+    if (btn.dataset.view === name) btn.setAttribute('aria-current', 'page');
+    else btn.removeAttribute('aria-current');
+  }
+  currentView = name;
+  try { localStorage.setItem('pld-view', name); } catch {}
+  render();
+}
+
+for (const btn of document.querySelectorAll('#navList button')) {
+  btn.addEventListener('click', () => setView(btn.dataset.view));
+}
+document.getElementById('bellBtn').addEventListener('click', () => setView('alarms'));
+
+// ------------------------------------------------------------------ feed
 let lastDaylight = isDaylight();
 
 source.onData((payload) => {
@@ -93,26 +151,43 @@ source.onData((payload) => {
 
 source.onStatus((status) => {
   ui.renderConnection(status);
-  document.getElementById('sourceMode').value = status.mode;
+  const sel = document.getElementById('sourceMode');
+  if (sel) sel.value = status.mode;
+  const pill = document.getElementById('livePill');
+  if (pill) pill.style.opacity = status.state === 'live' ? '1' : '.4';
 });
 
-// Fixed-rate render + evaluate loop.
-setInterval(() => {
-  engine.update(monitored, store.readingsForEngine(), Date.now(), { daylight: lastDaylight });
-  ui.update();
-  ui.renderConnection(source.status);
-}, RENDER_MS);
+function render() {
+  const now = Date.now();
+  const loadBySub = new Map(
+    register.SUBSTATIONS.map((s) => [s.id, store.substationRollup(s.id).loadKw])
+  );
+  electrical.update(loadBySub, store.site.loadKw, store.site.generationKw, now);
+  engine.update(monitored, store.readingsForEngine(), now, { daylight: lastDaylight });
 
-// Start on the simulator immediately so the dashboard is populated on first
-// paint, then switch to the live feed if the probe finds one.
+  document.getElementById('clockNow').textContent = new Date().toLocaleTimeString('en-GB', { hour12: false });
+  document.getElementById('dateNow').textContent = new Date().toLocaleDateString('en-GB', {
+    day: 'numeric', month: 'short', year: 'numeric',
+  });
+
+  ui.update();
+  if (currentView === 'overview') overview.update();
+  ui.renderConnection(source.status);
+}
+
+setInterval(render, RENDER_MS);
+
+// Restore the operator's last view.
+try {
+  const saved = localStorage.getItem('pld-view');
+  if (saved && (VIEWS[saved] || SOON[saved])) setView(saved);
+} catch {}
+
 source.start();
 
 detectSource().then((mode) => {
   if (mode === 'sse') {
     source.setMode('sse');
-    // The backend answered /api/health but may still fail to stream. Fall back
-    // rather than leaving the dashboard empty — and say so, instead of
-    // pretending the data is real.
     setTimeout(() => {
       if (source.status.messageCount === 0 && source.mode === 'sse') {
         console.warn('[power-monitor] SCADA endpoint answered but sent no data — using the in-browser simulator');
@@ -124,5 +199,4 @@ detectSource().then((mode) => {
   }
 });
 
-// Expose for console poking / integration testing.
-window.__power = { register, store, engine, source, ui };
+window.__power = { register, store, engine, electrical, source, ui, overview, setView };

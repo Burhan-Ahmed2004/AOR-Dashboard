@@ -17,7 +17,7 @@ import { kw, clockTime, escapeHtml } from './format.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 
-function el(name, attrs = {}) {
+export function el(name, attrs = {}) {
   const n = document.createElementNS(NS, name);
   for (const [k, v] of Object.entries(attrs)) if (v != null) n.setAttribute(k, String(v));
   return n;
@@ -29,7 +29,7 @@ function cssVar(node, name, fallback) {
 }
 
 /** Nice round axis ticks (0 / 1,000 / 2,000 …). */
-function niceTicks(min, max, count = 4) {
+export function niceTicks(min, max, count = 4) {
   if (!(max > min)) return [min];
   const span = max - min;
   const raw = span / count;

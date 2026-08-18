@@ -11,7 +11,7 @@
 
 import * as F from './format.js';
 import { SEVERITY, QUALITY } from './limits.js';
-import { createTrendChart, sparklineSvg, renderSld, renderBars } from './charts.js';
+import { createTrendChart, sparklineSvg, renderBars } from './charts.js';
 
 const SEV_META = {
   [SEVERITY.NORMAL]: { icon: 'i-check', label: 'Normal', rank: 0 },
@@ -193,22 +193,6 @@ export function createUi(ctx) {
       });
     }
 
-    // data gaps
-    $('gapList').innerHTML = register.DATA_GAPS.map(
-      (g) => `<li class="gap-item" data-sev="${g.severity}">${icon(g.severity === 'warning' ? 'i-warn' : 'i-info', 14)}<span>${F.escapeHtml(
-        g.text
-      )}</span></li>`
-    ).join('');
-
-    $('footNote').innerHTML =
-      `Point register derived from <b>AOR - GE (N) Maint Isld.docx</b>: ${register.SITE.buildingsTotal.toLocaleString('en-US')} buildings, ` +
-      `${register.SITE.dbCount} DBs, ${register.TRANSFORMER_FLEET.unitCount} transformers (${register.TRANSFORMER_FLEET.installedKva.toLocaleString(
-        'en-US'
-      )} kVA installed), ${register.SITE.htLineKm} km HT / ${register.SITE.ltLineKm} km LT cable. ` +
-      `Asset counts and named locations are from the register; <b>all kW ratings, limits and feeder allocations are engineering estimates</b> and must be replaced with metered values before operational use. ` +
-      `Readings shown are EMA-smoothed; limits are evaluated on the smoothed value with on-delay and hysteresis to prevent alarm flooding.`;
-
-    siteChart = createTrendChart($('siteChart'), { height: 210, label: 'Net demand' });
     wireControls();
     applyFilters();
   }
@@ -265,13 +249,10 @@ export function createUi(ctx) {
       });
     }
 
-    $('ackAll').addEventListener('click', () => {
-      engine.ackAll('operator');
-      renderAlarms();
-    });
-
-    $('tabOps').addEventListener('click', () => setView('ops'));
-    $('tabMgmt').addEventListener('click', () => setView('mgmt'));
+    for (const id of ['ackAll', 'ackAll2']) {
+      const btn = $(id);
+      if (btn) btn.addEventListener('click', () => { engine.ackAll('operator'); renderAlarms(); });
+    }
 
     $('themeBtn').addEventListener('click', () => {
       const cur = document.documentElement.dataset.theme;
@@ -312,15 +293,6 @@ export function createUi(ctx) {
     const running = source.running;
     $('playPause').innerHTML = `<svg width="16" height="16"><use href="#${running ? 'i-pause' : 'i-play'}"/></svg>`;
     $('playPause').setAttribute('aria-label', running ? 'Pause feed' : 'Resume feed');
-  }
-
-  function setView(v) {
-    state.view = v;
-    $('viewOps').hidden = v !== 'ops';
-    $('viewMgmt').hidden = v !== 'mgmt';
-    $('tabOps').setAttribute('aria-pressed', String(v === 'ops'));
-    $('tabMgmt').setAttribute('aria-pressed', String(v === 'mgmt'));
-    if (v === 'mgmt') renderManagement();
   }
 
   // ----------------------------------------------------------------- filters
@@ -387,50 +359,16 @@ export function createUi(ctx) {
   }
 
   // --------------------------------------------------------------- main tick
+  // --------------------------------------------------------------- main tick
   function update() {
-    const site = store.site;
-    const counts = engine.counts();
-
-    // hero
-    setText($('heroValue'), F.kwCompact(site.netKw, { unit: false }));
-    const delta = site.expectedKw > 0 ? site.netKw / site.expectedKw - 1 : 0;
-    const dIcon = delta > 0.03 ? 'i-up' : delta < -0.03 ? 'i-down' : 'i-minus';
-    setHtml($('heroDelta'), `<span class="delta">${icon(dIcon, 13)}${F.signedPct(delta, 1)}</span>`);
-    setText($('heroExpected'), F.kw(site.expectedKw));
-    setText($('heroPeak'), F.kw(site.peakKw));
-    setText($('heroRated'), F.kw(register.SITE_RATED_KW));
-    setText($('heroSolar'), F.kw(site.generationKw));
-    const heroPct = register.SITE_RATED_KW ? Math.min(100, (site.netKw / register.SITE_RATED_KW) * 100) : 0;
-    const heroSev = counts.critical ? 'critical' : counts.warning ? 'warning' : 'normal';
-    setAttr($('heroMeter'), 'class', `meter${heroSev === 'normal' ? '' : ` meter--${heroSev}`}`);
-    setStyle($('heroMeter').firstElementChild, 'width', `${heroPct}%`);
-
-    // tiles
-    setText($('kpiCritical'), counts.critical);
-    setText($('kpiWarning'), counts.warning - counts.comms);
-    setText($('kpiOffline'), site.offline);
-    setText($('kpiUnacked'), counts.unacked);
-    setText($('kpiUnackedSub'), counts.ringback ? `${counts.ringback} cleared but unacknowledged` : 'needing operator action');
-    setText($('kpiCriticalSub'), counts.critical ? 'points above alarm limit' : 'all points within limits');
-
-    // site trend
-    const refs = [];
-    if (site.history.length) siteChart.update(site.history, refs);
-    setText($('trendSub'), `${site.history.length} samples · smoothed · updated ${F.clockTime(site.lastTs)}`);
-
-    // SLD
-    renderSld($('sld'), substations, Object.fromEntries(substations.map((s) => [s.id, store.substationRollup(s.id)])), (id) =>
-      substationSeverity(id)
-    );
-
     updateGroupCards();
     updateRows();
     // Keep the "needs attention" filter and the severity sort honest as
-    // conditions change — but never reshuffle rows out from under a hand or a
+    // conditions change - but never reshuffle rows out from under a hand or a
     // keyboard focus that is currently in the table.
     if (!tableBusy && (state.onlyProblems || state.sortKey === 'severity')) applyFilters();
     renderAlarms();
-    if (state.view === 'mgmt') renderManagement();
+    renderManagement();
     if (state.selected) updateDrawer();
   }
 
@@ -508,70 +446,80 @@ export function createUi(ctx) {
   }
 
   // ------------------------------------------------------------------ alarms
-  function renderAlarms() {
-    const list = $('alarmList');
+  // Two containers show alarms: the overview panel and the Alarms & Events
+  // page. Each keeps its OWN keyed node map so reconciliation preserves
+  // keyboard focus on the Ack buttons instead of rebuilding on every tick.
+  const alarmRefSets = new Map();
+
+  function sevTag(ep) {
+    if (ep.kind === 'comms') return `<span class="sevtag sevtag--comms">${icon('i-offline', 11)}Comms</span>`;
+    if (ep.severity === SEVERITY.CRITICAL)
+      return `<span class="sevtag sevtag--critical">${icon('i-critical', 11)}Critical</span>`;
+    return `<span class="sevtag sevtag--warning">${icon('i-warn', 11)}Warning</span>`;
+  }
+
+  function renderAlarmsInto(containerId) {
+    const list = $(containerId);
+    if (!list) return;
+    let refs = alarmRefSets.get(containerId);
+    if (!refs) { refs = new Map(); alarmRefSets.set(containerId, refs); }
     const active = engine.active;
-    setText($('alarmsSub'), active.length ? `${active.length} open · latched until acknowledged` : 'latched until acknowledged');
-    $('ackAll').disabled = !active.some((a) => !a.ackedAt);
 
     if (!active.length) {
       if (!list.__empty) {
-        list.innerHTML = `<div class="empty">${icon('i-check', 16)}No points over limit. All monitored locations within their consumption limits.</div>`;
+        list.innerHTML = `<div class="empty">${icon('i-check', 15)}No points over limit. All monitored locations are within their consumption limits.</div>`;
         list.__empty = true;
-        alarmRefs.clear();
+        refs.clear();
       }
       return;
     }
-    list.__empty = false;
+    if (list.__empty) { list.innerHTML = ''; list.__empty = false; }
 
     const seen = new Set();
     let prev = null;
     for (const ep of active) {
       seen.add(ep.key);
-      let ref = alarmRefs.get(ep.key);
+      let ref = refs.get(ep.key);
       if (!ref) {
         const node = document.createElement('div');
-        node.innerHTML = `
-          <div class="alarm-top"><span data-f="badge"></span><span class="alarm-tag" data-f="tag"></span></div>
-          <div data-f="ack"></div>
-          <div class="alarm-msg"><b data-f="name"></b> — <span data-f="msg"></span></div>
-          <div class="alarm-meta" data-f="meta"></div>`;
+        node.innerHTML =
+          '<span data-f="sev"></span>' +
+          '<div class="alarm-main"><div class="alarm-msg" data-f="msg"></div>' +
+          '<div class="alarm-loc" data-f="loc"></div></div>' +
+          '<div class="alarm-right"><span class="alarm-age" data-f="age"></span><span data-f="ack"></span></div>';
         ref = {
           node,
-          badge: node.querySelector('[data-f="badge"]'),
-          tag: node.querySelector('[data-f="tag"]'),
-          ack: node.querySelector('[data-f="ack"]'),
-          name: node.querySelector('[data-f="name"]'),
+          sev: node.querySelector('[data-f="sev"]'),
           msg: node.querySelector('[data-f="msg"]'),
-          meta: node.querySelector('[data-f="meta"]'),
+          loc: node.querySelector('[data-f="loc"]'),
+          age: node.querySelector('[data-f="age"]'),
+          ack: node.querySelector('[data-f="ack"]'),
         };
-        alarmRefs.set(ep.key, ref);
+        refs.set(ep.key, ref);
       }
       const kindCls = ep.kind === 'comms' ? 'comms' : ep.severity;
       setAttr(ref.node, 'class', `alarm alarm--${kindCls}${ep.clearedAt ? ' alarm--cleared' : ''}`);
-      setHtml(
-        ref.badge,
-        ep.kind === 'comms'
-          ? `<span class="badge badge--offline">${icon('i-offline')}Comms lost</span>`
-          : statusBadge(ep.severity, QUALITY.GOOD)
-      );
-      setText(ref.tag, ep.pointId);
-      setText(ref.name, ep.pointName);
-      setText(ref.msg, ep.message || '');
-      const bits = [`raised ${F.clockTime(ep.raisedAt)}`];
-      if (ep.kind !== 'comms') bits.push(`peak ${F.kw(ep.peakKw)}`, `limit ${F.kw(ep.limitKw)}`);
-      if (ep.escalations.length) bits.push(`escalated ${ep.escalations.length}×`);
-      if (ep.clearedAt) bits.push(`cleared ${F.clockTime(ep.clearedAt)} — acknowledge to close`);
-      if (ep.ackedAt) bits.push(`acked ${F.clockTime(ep.ackedAt)}`);
-      setText(ref.meta, bits.join(' · '));
+      setHtml(ref.sev, sevTag(ep));
+      setText(ref.msg, `${ep.pointId} — ${ep.message || ''}`);
+      const sub = subById[ep.substationId];
+      const bits = [ep.pointName];
+      if (ep.location && ep.location !== ep.pointName) bits.push(ep.location);
+      if (sub) bits.push(sub.name);
+      if (ep.clearedAt) bits.push('cleared — acknowledge to close');
+      if (ep.escalations.length) bits.push(`escalated ${ep.escalations.length}x`);
+      setText(ref.loc, bits.join(' · '));
+      setText(ref.age, F.since(ep.raisedAt));
+
       if (ep.ackedAt) {
-        setHtml(ref.ack, `<span class="acked-mark">${icon('i-check', 12)}Acknowledged</span>`);
+        setHtml(ref.ack, `<span class="acked-mark">${icon('i-check', 11)}Acked</span>`);
+        ref.ack.__btn = false;
       } else if (!ref.ack.__btn) {
         ref.ack.innerHTML = '';
         const b = document.createElement('button');
         b.type = 'button';
         b.className = 'ack-btn';
         b.textContent = 'Ack';
+        b.setAttribute('aria-label', `Acknowledge alarm on ${ep.pointId}`);
         b.addEventListener('click', (e) => {
           e.stopPropagation();
           engine.ack(ep.key, 'operator');
@@ -580,16 +528,32 @@ export function createUi(ctx) {
         ref.ack.append(b);
         ref.ack.__btn = true;
       }
-      // keep DOM order in sync with severity order without rebuilding
+
       const after = prev ? prev.nextSibling : list.firstChild;
       if (ref.node !== after) list.insertBefore(ref.node, after);
       prev = ref.node;
     }
-    for (const [key, ref] of alarmRefs) {
-      if (!seen.has(key)) {
-        ref.node.remove();
-        alarmRefs.delete(key);
-      }
+    for (const [key, ref] of refs) {
+      if (!seen.has(key)) { ref.node.remove(); refs.delete(key); }
+    }
+  }
+
+  function renderAlarms() {
+    const active = engine.active;
+    const unacked = active.filter((a) => !a.ackedAt).length;
+    for (const b of ['ackAll', 'ackAll2']) {
+      const btn = $(b);
+      if (btn) btn.disabled = unacked === 0;
+    }
+    renderAlarmsInto('alarmList');
+    renderAlarmsInto('alarmList2');
+
+    // Nav badge + top-bar bell reflect what still needs an operator.
+    for (const id of ['navAlarmCount', 'bellCount']) {
+      const n = $(id);
+      if (!n) continue;
+      n.hidden = unacked === 0;
+      setText(n, unacked);
     }
   }
 
@@ -867,13 +831,13 @@ export function createUi(ctx) {
             : `<b>Feed delayed.</b> Last update ${F.since(status.lastMessageAt)}. Readings may be behind.`
         }${status.lastError ? ` (${F.escapeHtml(status.lastError)})` : ''}</span>`
       );
-      document.getElementById('viewOps').classList.toggle('stale-veil', status.state === 'down');
+      for (const v of document.querySelectorAll('.view')) v.classList.toggle('stale-veil', status.state === 'down');
     } else {
       banner.hidden = true;
-      document.getElementById('viewOps').classList.remove('stale-veil');
+      for (const v of document.querySelectorAll('.view')) v.classList.remove('stale-veil');
     }
     updatePlayPause();
   }
 
-  return { mountStatic, update, renderConnection, renderAlarms, setView };
+  return { mountStatic, update, renderConnection, renderAlarms, renderManagement, openDrawer };
 }

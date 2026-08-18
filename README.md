@@ -1,11 +1,32 @@
-# Power Load Monitor — AOR / GE(N) Maint Isld
+# Electricity Management Dashboard — AOR / GE(N) Maint Isld
 
-Real-time power consumption monitoring for the complex. Every monitored location
-carries a stable **tag ID**, reports its live demand, and is checked against a
+A power-monitoring dashboard for the 360-acre complex. Every monitored location
+carries a stable **tag ID**, reports live demand, and is checked against a
 **consumption limit** — with the alarm behaviour a control room actually needs
 rather than a naive `value > limit` test.
 
 Built from the asset register in `AOR - GE (N) Maint Isld.docx`.
+
+> ### Read this before trusting a number
+> The source register is an **asset inventory**, not a telemetry archive. It
+> contains **no metering of any kind** — searching it for *voltage*, *frequency*,
+> *power factor*, *MVAR*, *kWh*, *generator*, *incomer* or *breaker* returns
+> **zero** hits.
+>
+> So the dashboard marks every figure with its provenance:
+>
+> | Badge | Meaning |
+> |---|---|
+> | **REG** | stated in the asset register — asset counts, transformer capacity, topology, named locations |
+> | **SIM** | simulated — every live electrical reading, because no measured data exists |
+>
+> Simulated values are not invented independently: they are derived from the
+> modelled real power using standard three-phase relationships
+> (`S = sqrt(3)·V·I`, `Q = P·tan(acos PF)`), so they stay physically consistent
+> with one another.
+>
+> **The register records no diesel generators and no 132 kV intake**, so neither
+> is modelled. The single-line diagram shows the documented 11 kV network only.
 
 ---
 
@@ -15,7 +36,7 @@ Built from the asset register in `AOR - GE (N) Maint Isld.docx`.
 node server/mock-scada.js      # or: npm start
 ```
 
-Then open **http://localhost:8787/**.
+Then open **http://localhost:8787/** (pass `--port` to change it).
 
 That starts a zero-dependency mock SCADA server which serves the dashboard *and*
 a simulated telemetry feed over the same REST + SSE path your real system will
@@ -52,83 +73,28 @@ After cloning, create it in the project root:
 
 There are no dependencies, so there is nothing to `npm install`.
 
-> Opening `index.html` directly off disk also works — it falls back to the
-> in-browser simulator — but `file://` blocks ES-module loading in some browsers,
-> so the server is the supported way to run it.
-
 ---
 
-## Deploying (Vercel)
+## The screens
 
-The dashboard is plain static files, so it deploys with no build step. On
-start-up it probes `./api/health`; if nothing answers it runs the **in-browser
-simulator** instead of showing a false "feed lost" alarm. A static deployment is
-therefore a fully working demo — it just isn't fed by real telemetry.
+A left nav switches between them. The layout fits **390 px phones through
+2560 px wall displays** — verified at nine widths with zero horizontal overflow.
 
-```bash
-npm i -g vercel
-vercel login
-vercel            # preview deployment
-vercel --prod     # production
-```
-
-Or import the GitHub repo at [vercel.com/new](https://vercel.com/new) — with no
-`package.json` present, Vercel detects a static site automatically. Leave the
-framework preset as **Other**, and both build command and output directory empty.
-
-Two config files control the deployment:
-
-- **`vercel.json`** — security headers, and revalidate-on-load caching for
-  `index.html` and `src/` so a redeploy is picked up immediately.
-- **`.vercelignore`** — keeps `server/`, `scripts/` and **the source `.docx`** out
-  of the upload. Anything deployed is publicly fetchable by URL, and the register
-  document is not needed at runtime (its data is already compiled into
-  `src/register.js`).
-
-> A Vercel deployment is **public by default**. This dashboard embeds the site's
-> asset register — substations, transformer capacity, tube-well locations,
-> building counts. If that shouldn't be on the open internet, put the project
-> behind Vercel's password protection / SSO (Project → Settings → Deployment
-> Protection) before sharing the URL.
-
-### Serving live telemetry from a deployment
-
-A static deployment has no `/api`. To feed it real data, either:
-
-1. point `streamUrl` / `readingsUrl` in `src/app.js` at your SCADA gateway's own
-   host (it must send CORS headers), or
-2. add Vercel serverless functions under `api/` that proxy your gateway — this
-   needs `package.json` with `"type": "module"` committed, since the functions
-   import from `src/`.
-
-Note that Vercel serverless functions have a maximum execution duration, so a
-long-lived SSE stream should use the Edge runtime or the `poll` source mode.
-
----
-
-## What it shows
-
-**Operations view** — for "is anything wrong right now":
-
-| | |
+| Screen | What it shows |
 |---|---|
-| **Hero figure** | net site demand, against typical-for-this-hour, session peak and rated demand |
-| **Status tiles** | over limit · approaching limit · not reporting · unacknowledged |
-| **Trend** | net demand vs typical load, crosshair tooltip, keyboard-navigable |
-| **Active alarms** | latched, acknowledgeable, with raised/acked/cleared times |
-| **Single-line diagram** | bus → 3 substations, loading against installed transformer capacity |
-| **Load groups** | the register's own 8 load groups + solar generation |
-| **Point table** | every location: tag, live kW, typical, vs typical, limit, % of limit, trend, status, age |
-| **Point detail** | click any row — trend with limit lines drawn on it, full figures, that point's alarm history |
+| **Overview** | 6-KPI electrical strip (MW / MVAR / PF / Hz / kV / kWh), load trend vs typical, active alarms, power-distribution donut, load by category, energy gauge and summary, 11 kV single-line diagram, 3-phase voltage profile with statutory limits, secondary metrics, register data gaps |
+| **Load Monitoring** | Every monitored location: tag, live kW, typical, vs typical, limit, % of limit, trend, status, age. Searchable, sortable, filterable. Click a row for its trend with limit lines drawn on it, plus its alarm history |
+| **Alarms & Events** | Active alarms plus the full log — raised / acknowledged / cleared, nothing disappears silently |
+| **Transformers** | The 109-unit fleet and its 18,530 kVA — entirely register-derived, no simulation |
+| **Reports** | Session summary, consumption and energy by group, substation utilisation, CSV export |
+| **Settings** | Full data-provenance statement and the register reconciliation gaps |
 
-**Management view** — for trends and reporting: session summary (average, peak,
-load factor, energy), consumption and energy by group, substation utilisation,
-the full alarm log, and CSV export of both points and alarms.
+Sections needing data that does not exist yet (Power Flow, Voltage & Frequency,
+Energy Analytics, Solar, Switchgear, Forecasting) are present in the nav and
+state plainly what each would require.
 
-Light/dark themes, and a **wall-display density** toggle (the `A` button) that
+Light/dark themes, plus a **wall-display density** toggle (the `A` button) that
 enlarges everything for a screen read from across a room.
-
----
 
 ## The alarm engine
 
@@ -311,16 +277,19 @@ Surfaced rather than silently patched — these are questions for the facility t
 ## Layout
 
 ```
-index.html              shell, both themes, icon sprite
+index.html              shell, left nav, both themes, icon sprite
 src/
-  register.js           point register — tag ids, limits, feeders   ← replace from SCADA
-  source.js             data source: sim | sse | poll + watchdog    ← the integration seam
+  register.js           point register - tag ids, limits, feeders   <- replace from SCADA
+  source.js             data source: sim | sse | poll + watchdog    <- the integration seam
   limits.js             alarm engine
   store.js              history, EMA smoothing, roll-ups
-  ui.js                 rendering (DOM built once, cells updated in place)
-  charts.js             SVG trend / sparkline / SLD / bars
+  electrical.js         derived V / I / PF / Hz / kVAR / energy     <- all SIM
+  overview.js           the overview screen + transformers page
+  ui.js                 point table, alarms, drawer, reports
+  charts.js             trend / sparkline / bars
+  charts-power.js       donut / gauge / voltage profile / SLD
   format.js             units and precision
-  simulator.js          stand-in feed — delete once live
+  simulator.js          stand-in feed - delete once live
 server/mock-scada.js    zero-dep server: static + /api/readings + /api/stream + /api/points + /api/health
 scripts/
   verify-register.js    reconciles the register against the document

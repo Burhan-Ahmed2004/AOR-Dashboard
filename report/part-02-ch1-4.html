@@ -1,0 +1,394 @@
+<!-- ============================================================== CHAPTER 1 -->
+<section class="chapter" id="ch1" data-title="Executive Summary" data-num="1">
+  <div class="ch-head">
+    <span class="ch-num">Chapter 1</span>
+    <h2>Executive Summary</h2>
+    <p class="ch-intro">What the system is, the problem it addresses, and who it serves &mdash;
+    written for a reader with no prior exposure to it and no electrical background.</p>
+  </div>
+
+  <h3>1.1 What the dashboard is</h3>
+  <p>Power Monitor is a web-based electricity management dashboard for the AOR complex at
+  GE(N) Maint Isld &mdash; a 360-acre site containing 2,157 buildings, three electrical
+  substations and 109 transformers. It presents, on a single set of screens, how much
+  electrical power every part of the site is drawing, whether any part is drawing more than it
+  should, and what the electrical supply quality looks like.</p>
+
+  <p>The dashboard displays 110 monitored locations, each identified by a stable tag such as
+  <code>TW-01</code> (Tube Well No.1) or <code>MED-HOSP</code> (PNS Hafeez Hospital). Each
+  location has a defined consumption limit. When a location exceeds that limit, the system
+  raises an alarm that persists until an operator acknowledges it.<span class="pv pv-impl">IMPL</span></p>
+
+  <h3>1.2 The problem it addresses</h3>
+  <p>Before a system like this exists, a facility of this size has an inventory but no
+  visibility. The maintenance organisation knows it is responsible for 980 street lights, 84
+  motor pumps and 14 tube wells, but it cannot answer three practical questions:</p>
+  <ul>
+    <li><strong>Where is our electricity going?</strong> Which zones, buildings and plant items
+    account for the site's consumption.</li>
+    <li><strong>Is anything abnormal right now?</strong> A pump drawing double its normal current
+    is a failing bearing; nobody notices until it seizes.</li>
+    <li><strong>Do we have capacity?</strong> Whether a new building can be connected to an
+    existing substation without overloading it.</li>
+  </ul>
+  <p>The dashboard is built to answer all three continuously rather than through periodic manual
+  survey.</p>
+
+  <div class="callout callout--warn">
+    <div class="callout-title">Critical qualification &mdash; read before using any figure</div>
+    <p>The source document for this project is an <strong>asset register</strong>: it records what
+    exists and in what quantity. It contains <strong>no electrical measurements of any kind</strong>.
+    A systematic search of the document returns zero occurrences of <em>voltage</em>, <em>frequency</em>,
+    <em>power factor</em>, <em>kWh</em>, <em>MVAR</em>, <em>generator</em>, <em>incomer</em>,
+    <em>breaker</em>, <em>meter</em> or <em>demand</em>.<span class="pv pv-impl">IMPL</span></p>
+    <p>Consequently every live reading shown by the dashboard is <strong>simulated</strong>, and is
+    labelled as such in the interface. The structure &mdash; asset counts, transformer capacities,
+    named locations, network topology &mdash; is real and traceable to the register. The readings
+    are a working model awaiting connection to real metering.</p>
+  </div>
+
+  <h3>1.3 What information it provides</h3>
+  <p>The dashboard organises information into five categories:</p>
+  <table>
+    <thead><tr><th style="width:34mm">Category</th><th>What it covers</th><th style="width:34mm">Primary screens</th></tr></thead>
+    <tbody>
+      <tr><td>Consumption</td><td>Power drawn now, by location, by asset group and by substation; energy accumulated over time</td><td>Overview, Load Monitoring, Energy Analytics</td></tr>
+      <tr><td>Supply quality</td><td>Voltage, frequency, power factor, phase imbalance &mdash; whether the electricity arriving is within statutory limits</td><td>Voltage &amp; Frequency, Overview</td></tr>
+      <tr><td>Network state</td><td>How power flows from intake to load; substation loading; breaker positions</td><td>Power Flow, Switchgear, Transformers</td></tr>
+      <tr><td>Exceptions</td><td>Locations over limit, meters not reporting, and a permanent record of every alarm</td><td>Alarms &amp; Events, Overview</td></tr>
+      <tr><td>Planning</td><td>Generation from solar, forecast demand, spare capacity, exportable reports</td><td>Solar, Forecasting, Reports</td></tr>
+    </tbody>
+  </table>
+  <p class="tbl-cap"><b>Table 1.1</b> &mdash; The five information categories and where each is presented.</p>
+
+  <h3>1.4 Who would use it</h3>
+  <table>
+    <thead><tr><th style="width:38mm">User</th><th>What they need from it</th></tr></thead>
+    <tbody>
+      <tr><td>Control-room operator</td><td>Continuous view of whether anything is abnormal now; acknowledge and act on alarms. Uses Overview and Alarms &amp; Events.</td></tr>
+      <tr><td>Maintenance engineer</td><td>Investigate a specific location &mdash; its trend, its limits, its alarm history. Uses Load Monitoring and its detail panel.</td></tr>
+      <tr><td>Electrical engineer</td><td>Supply quality, phase imbalance, substation loading, network topology. Uses Voltage &amp; Frequency, Power Flow, Transformers.</td></tr>
+      <tr><td>Facilities manager</td><td>Consumption trends, energy totals, cost drivers, capacity headroom. Uses Energy Analytics, Reports, Forecasting.</td></tr>
+      <tr><td>Planner / project engineer</td><td>Whether spare capacity exists to connect new load. Uses Forecasting and Transformers.</td></tr>
+    </tbody>
+  </table>
+  <p class="tbl-cap"><b>Table 1.2</b> &mdash; Intended audiences and the screens serving each.<span class="pv pv-int">INTERP</span></p>
+
+  <h3>1.5 Decisions it can support</h3>
+  <ul class="tight">
+    <li><strong>Immediate response</strong> &mdash; dispatch a technician to a location drawing far above its normal profile.</li>
+    <li><strong>Preventive maintenance</strong> &mdash; a pump whose consumption is creeping upward week over week is degrading before it fails.</li>
+    <li><strong>Capacity planning</strong> &mdash; whether a substation has headroom for additional connected load.</li>
+    <li><strong>Consumption reduction</strong> &mdash; the top-consumers table identifies where reduction effort produces the largest result.</li>
+    <li><strong>Fault localisation</strong> &mdash; the single-line diagram and power-flow view narrow a problem to a feeder or substation.</li>
+    <li><strong>Data-quality management</strong> &mdash; meters that stop reporting are surfaced as a distinct condition from meters reading zero.</li>
+  </ul>
+
+  <div class="callout">
+    <div class="callout-title">A finding worth escalating</div>
+    <p>While reconciling the register, one genuine documentary discrepancy was identified. The
+    document states <strong>14 tube wells, of which 12 are operational</strong>, but lists only
+    <strong>11</strong> with locations. One operational tube well is unaccounted for. Tags
+    TW-02, TW-06 and TW-12 have no register entry and are carried as unmonitored. This is a
+    question for the facilities team, and the dashboard displays it rather than silently
+    reconciling it.<span class="pv pv-impl">IMPL</span></p>
+  </div>
+</section>
+
+<!-- ============================================================== CHAPTER 2 -->
+<section class="chapter" id="ch2" data-title="Dashboard Overview" data-num="2">
+  <div class="ch-head">
+    <span class="ch-num">Chapter 2</span>
+    <h2>Dashboard Overview</h2>
+    <p class="ch-intro">How the dashboard is organised, how its parts relate, and the information
+    hierarchy a reader should expect.</p>
+  </div>
+
+  <h3>2.1 Organising principle</h3>
+  <p>The dashboard follows a <strong>summary-then-detail</strong> structure. One screen answers
+  "is anything wrong?"; eleven further screens answer "what, where, and why?". This mirrors how a
+  control room is actually used: continuous monitoring of a single overview, with drill-down only
+  when something demands attention.<span class="pv pv-int">INTERP</span></p>
+
+  <h3>2.2 Main navigation</h3>
+  <p>Navigation is a fixed left-hand sidebar listing twelve destinations. It is always visible on
+  screens wider than 900 pixels; below that it becomes a horizontal scrolling strip at the top of
+  the page.<span class="pv pv-impl">IMPL</span> The selected item is marked with a left accent bar
+  and a tinted background. An alarm counter appears against <em>Alarms &amp; Events</em> when
+  unacknowledged alarms exist.</p>
+
+  <figure>
+    <img src="figures/sec-sidenav.png" alt="Dashboard navigation sidebar">
+    <figcaption><b>Figure 2.1</b> &mdash; The navigation sidebar. Twelve destinations in a
+    deliberate order: situational awareness first (Overview, Power Flow, Load Monitoring),
+    then supply quality and analysis, then network assets, then exceptions and reporting.
+    The red badge against Alarms &amp; Events is the count of unacknowledged alarms.</figcaption>
+  </figure>
+
+  <table>
+    <thead><tr><th style="width:36mm">Screen</th><th style="width:26mm">Category</th><th>Question it answers</th></tr></thead>
+    <tbody>
+      <tr><td>Overview</td><td>Situational</td><td>Is anything wrong right now?</td></tr>
+      <tr><td>Power Flow</td><td>Situational</td><td>Where is the electricity going?</td></tr>
+      <tr><td>Load Monitoring</td><td>Situational</td><td>What is each individual location drawing?</td></tr>
+      <tr><td>Voltage &amp; Frequency</td><td>Quality</td><td>Is the supply itself healthy?</td></tr>
+      <tr><td>Energy Analytics</td><td>Analysis</td><td>How much have we consumed, and where?</td></tr>
+      <tr><td>Solar</td><td>Analysis</td><td>Is our generation performing as it should?</td></tr>
+      <tr><td>Transformers</td><td>Assets</td><td>What transformer capacity do we have?</td></tr>
+      <tr><td>Switchgear</td><td>Assets</td><td>What is the state of the protective equipment?</td></tr>
+      <tr><td>Alarms &amp; Events</td><td>Exceptions</td><td>What has gone wrong, and was it handled?</td></tr>
+      <tr><td>Reports</td><td>Reporting</td><td>What are the period totals, and can I export them?</td></tr>
+      <tr><td>Forecasting</td><td>Planning</td><td>What will demand be over the next day?</td></tr>
+      <tr><td>Settings</td><td>Reference</td><td>Where does every number come from?</td></tr>
+    </tbody>
+  </table>
+  <p class="tbl-cap"><b>Table 2.1</b> &mdash; The twelve screens, in navigation order.<span class="pv pv-impl">IMPL</span></p>
+
+  <h3>2.3 Persistent header</h3>
+  <figure>
+    <img src="figures/sec-topbar.png" alt="Dashboard header bar">
+    <figcaption><b>Figure 2.2</b> &mdash; The persistent header. From left: title and site
+    identifier, live indicator, clock and date, connection health pill, data-source selector,
+    pause control, alarm bell with count, display-size toggle, and theme toggle.</figcaption>
+  </figure>
+
+  <p>The header remains constant across all twelve screens. Its most operationally significant
+  element is the <strong>connection pill</strong>, which reports both the feed state and the age of
+  the most recent message. A dashboard that silently freezes on stale values is the most dangerous
+  failure mode this class of system has; the header is where that condition is made visible.<span class="pv pv-int">INTERP</span></p>
+
+  <h3>2.4 Provenance bar</h3>
+  <figure>
+    <img src="figures/sec-provbar.png" alt="Provenance legend bar">
+    <figcaption><b>Figure 2.3</b> &mdash; The provenance bar, displayed beneath the header on every
+    screen. It defines the two badges that appear throughout the interface: <b>REG</b> for values
+    taken from the asset register, <b>SIM</b> for simulated readings.</figcaption>
+  </figure>
+
+  <p>This bar is unusual for a dashboard and deserves comment. Because the register contains no
+  metering, the interface would otherwise present modelled values with the same authority as
+  measured ones. The two-badge scheme makes the distinction visible at the point of use rather than
+  burying it in documentation.<span class="pv pv-impl">IMPL</span></p>
+
+  <h3>2.5 Information hierarchy</h3>
+  <p>Within the Overview screen, and repeated on the detail screens, the hierarchy runs:</p>
+  <div class="flowdiag">Level 1   Headline figures        6 KPI tiles / 4 stat tiles
+          "what is the state?"    single numbers, largest type on the page
+
+Level 2   Trends and breakdowns   charts, distribution, category bars
+          "how did we get here?"  shape over time, share by group
+
+Level 3   Exceptions              alarm list, status badges
+          "what needs action?"    only populated when something is wrong
+
+Level 4   Detail                  tables, per-point drill-down
+          "what exactly?"         every location, every value, every timestamp</div>
+  <p class="tbl-cap"><b>Figure 2.4</b> &mdash; The four-level information hierarchy applied across
+  the dashboard.<span class="pv pv-int">INTERP</span></p>
+
+  <h3>2.6 How the parts work together</h3>
+  <p>All twelve screens read from the same three in-memory models, so no two screens can disagree
+  about the state of the plant:<span class="pv pv-impl">IMPL</span></p>
+  <ul class="tight">
+    <li><strong>The store</strong> holds smoothed readings, per-point history, and roll-ups by
+    group and by substation.</li>
+    <li><strong>The electrical model</strong> derives voltage, current, power factor, reactive
+    power and energy from those readings.</li>
+    <li><strong>The alarm engine</strong> evaluates every reading against its limits and maintains
+    the alarm record.</li>
+  </ul>
+  <p>A single render loop updates whichever screen is currently displayed, once per second. Screens
+  that are not displayed are not rendered.</p>
+</section>
+
+<!-- ============================================================== CHAPTER 3 -->
+<section class="chapter" id="ch3" data-title="System &amp; Technical Architecture" data-num="3">
+  <div class="ch-head">
+    <span class="ch-num">Chapter 3</span>
+    <h2>System &amp; Technical Architecture</h2>
+    <p class="ch-intro">The implementation as it actually exists: languages, modules, runtime
+    behaviour and dependencies.</p>
+  </div>
+
+  <h3>3.1 Technology summary</h3>
+  <table>
+    <thead><tr><th style="width:38mm">Layer</th><th style="width:44mm">Technology</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Frontend framework</td><td>None &mdash; vanilla JavaScript</td><td>Native ES modules loaded by <code>&lt;script type="module"&gt;</code>. No React, Vue, Angular or Svelte.<span class="pv pv-impl">IMPL</span></td></tr>
+      <tr><td>Visualisation library</td><td>None &mdash; hand-authored SVG</td><td>All charts are generated as SVG by project code. No D3, Chart.js, Recharts or Plotly.<span class="pv pv-impl">IMPL</span></td></tr>
+      <tr><td>Styling</td><td>Plain CSS in <code>index.html</code></td><td>CSS custom properties drive two themes. No Tailwind, Bootstrap or preprocessor.</td></tr>
+      <tr><td>Backend</td><td>Node.js <code>node:http</code></td><td>Reference server in <code>server/mock-scada.js</code>. No Express, Fastify or Koa.<span class="pv pv-impl">IMPL</span></td></tr>
+      <tr><td>Database</td><td>None</td><td>No database of any kind. State is in browser memory and is not persisted across reloads, except UI preferences.<span class="pv pv-impl">IMPL</span></td></tr>
+      <tr><td>Runtime dependencies</td><td>Zero</td><td><code>package.json</code> declares no <code>dependencies</code> or <code>devDependencies</code>. Nothing to <code>npm install</code>.<span class="pv pv-impl">IMPL</span></td></tr>
+      <tr><td>State management</td><td>Module closures</td><td>Each model is a factory function returning an object with private state. No Redux, MobX or signals.</td></tr>
+      <tr><td>Authentication</td><td>None</td><td>No login, session or access control exists in the implementation.<span class="pv pv-impl">IMPL</span></td></tr>
+      <tr><td>External services</td><td>None</td><td>No CDN, analytics, telemetry or third-party API calls. The application runs fully offline.<span class="pv pv-impl">IMPL</span></td></tr>
+      <tr><td>Node requirement</td><td>&ge; 18</td><td>Declared in <code>package.json</code> <code>engines</code>.</td></tr>
+    </tbody>
+  </table>
+  <p class="tbl-cap"><b>Table 3.1</b> &mdash; Technology stack, verified against the project files.</p>
+
+  <div class="callout">
+    <div class="callout-title">Why zero dependencies matters here</div>
+    <p>A facility of this type may operate on an isolated or air-gapped network. A build with no
+    external dependencies, no CDN references and no build step can be deployed by copying a folder,
+    and cannot break because a package registry is unreachable.<span class="pv pv-int">INTERP</span></p>
+  </div>
+
+  <h3>3.2 Module structure</h3>
+  <table>
+    <thead><tr><th style="width:42mm">Module</th><th style="width:14mm" class="num">Lines</th><th>Responsibility</th></tr></thead>
+    <tbody>
+      <tr><td><code>src/register.js</code></td><td class="num">404</td><td>The point register &mdash; every monitored location, its tag, group, substation, unit count, rated demand and limits. The single source of truth for what is monitored.</td></tr>
+      <tr><td><code>src/source.js</code></td><td class="num">238</td><td>Data-source abstraction. Three modes: in-browser simulator, server-sent events, REST polling. Includes the connection watchdog. <strong>This is the sole integration seam.</strong></td></tr>
+      <tr><td><code>src/simulator.js</code></td><td class="num">190</td><td>Stand-in telemetry generator: diurnal demand profiles, mean-reverting noise, load excursions, comms dropouts.</td></tr>
+      <tr><td><code>src/store.js</code></td><td class="num">271</td><td>Reading history, exponential smoothing, energy accumulation, and roll-ups by group and substation.</td></tr>
+      <tr><td><code>src/electrical.js</code></td><td class="num">200</td><td>Derives voltage, current, power factor, reactive and apparent power, energy, losses and CO&#8322; from real power.</td></tr>
+      <tr><td><code>src/limits.js</code></td><td class="num">434</td><td>The alarm engine: limit evaluation, on/off delays, hysteresis, latching, acknowledgement, anti-flood re-arm, episode log.</td></tr>
+      <tr><td><code>src/switchgear.js</code></td><td class="num">131</td><td>Breaker, feeder and distribution-board state model.</td></tr>
+      <tr><td><code>src/overview.js</code></td><td class="num">~290</td><td>Renders the Overview screen and the Transformers screen.</td></tr>
+      <tr><td><code>src/pages.js</code></td><td class="num">~510</td><td>Renders Power Flow, Voltage &amp; Frequency, Energy Analytics, Solar, Switchgear and Forecasting.</td></tr>
+      <tr><td><code>src/ui.js</code></td><td class="num">843</td><td>Point table, group cards, alarm lists, detail drawer, Reports screen, CSV export, connection banner.</td></tr>
+      <tr><td><code>src/charts.js</code></td><td class="num">372</td><td>Trend chart, sparkline, horizontal bar chart.</td></tr>
+      <tr><td><code>src/charts-power.js</code></td><td class="num">~330</td><td>Distribution doughnut, arc gauge, multi-series chart, single-line diagram.</td></tr>
+      <tr><td><code>src/charts-pages.js</code></td><td class="num">~330</td><td>Power-flow diagram, status grid, forecast band chart, load-duration curve.</td></tr>
+      <tr><td><code>src/format.js</code></td><td class="num">84</td><td>Number, unit, percentage and time formatting.</td></tr>
+      <tr><td><code>src/app.js</code></td><td class="num">222</td><td>Wiring: instantiates the models, binds navigation, runs the render loop.</td></tr>
+      <tr><td><code>server/mock-scada.js</code></td><td class="num">~245</td><td>Reference server: serves the static application and four API endpoints.</td></tr>
+    </tbody>
+  </table>
+  <p class="tbl-cap"><b>Table 3.2</b> &mdash; Source modules and responsibilities.<span class="pv pv-impl">IMPL</span></p>
+
+  <h3>3.3 API endpoints</h3>
+  <table>
+    <thead><tr><th style="width:34mm">Endpoint</th><th style="width:20mm">Method</th><th>Returns</th></tr></thead>
+    <tbody>
+      <tr><td><code>/api/readings</code></td><td>GET</td><td>The most recent sample set for every reporting point. Used by polling clients.</td></tr>
+      <tr><td><code>/api/stream</code></td><td>GET (SSE)</td><td>Server-sent event stream, one frame per tick. Used by streaming clients. Primes immediately on connect and sends a keep-alive comment every 15 s.</td></tr>
+      <tr><td><code>/api/points</code></td><td>GET</td><td>The full point register: tags, names, locations, groups, substations, unit counts, ratings and limits.</td></tr>
+      <tr><td><code>/api/health</code></td><td>GET</td><td>Tick count, uptime, configured interval, connected stream clients, monitored point count, points reporting in the last tick.</td></tr>
+    </tbody>
+  </table>
+  <p class="tbl-cap"><b>Table 3.3</b> &mdash; API surface of the reference server.<span class="pv pv-impl">IMPL</span></p>
+
+  <h3>3.4 Runtime behaviour</h3>
+  <dl class="kv">
+    <dt>Feed interval</dt><dd>2,000 ms default; configurable via <code>--interval</code>.</dd>
+    <dt>Render interval</dt><dd>1,000 ms, fixed and independent of the feed rate.</dd>
+    <dt>Source detection</dt><dd>On load the application probes <code>./api/health</code> with a 2.5 s timeout. If it responds, the stream is used; otherwise the in-browser simulator runs.</dd>
+    <dt>Persistence</dt><dd><code>localStorage</code> retains only theme, display density and last-viewed screen. No readings are persisted.</dd>
+  </dl>
+
+  <div class="callout">
+    <div class="callout-title">Design note &mdash; why rendering is decoupled from the feed</div>
+    <p>The render loop runs on a fixed timer rather than on data arrival. A fast feed therefore
+    cannot overwhelm the interface, and &mdash; more importantly &mdash; a feed that <em>stops</em>
+    still triggers repaints. This is what allows staleness, offline meters and a dead backend to
+    surface on their own, instead of the display freezing on the last good value while appearing
+    healthy.<span class="pv pv-impl">IMPL</span></p>
+  </div>
+
+  <h3>3.5 Verification tooling</h3>
+  <p>Two scripts accompany the implementation:<span class="pv pv-impl">IMPL</span></p>
+  <ul class="tight">
+    <li><code>scripts/verify-register.js</code> &mdash; reconciles the point register against the totals stated in the source document (23 assertions covering building counts, asset counts, transformer units and installed capacity, plus limit-ladder coherence and duplicate-tag detection).</li>
+    <li><code>scripts/test-alarms.js</code> &mdash; 26 behavioural assertions on the alarm engine covering on-delay, anti-flood, hysteresis, acknowledgement, ringback, re-arm, comms detection and smoothing.</li>
+  </ul>
+  <p>Both run via <code>npm test</code>. All 29 checks pass on the analysed revision.</p>
+</section>
+
+<!-- ============================================================== CHAPTER 4 -->
+<section class="chapter" id="ch4" data-title="Data Flow" data-num="4">
+  <div class="ch-head">
+    <span class="ch-num">Chapter 4</span>
+    <h2>Data Flow</h2>
+    <p class="ch-intro">The path a single reading takes from origin to pixel, and where each
+    transformation occurs.</p>
+  </div>
+
+  <h3>4.1 End-to-end pipeline</h3>
+  <div class="flowdiag">  ORIGIN            src/simulator.js            (or your SCADA gateway)
+                    diurnal profile + AR(1) noise + excursions + dropouts
+                          |
+                          v
+  TRANSPORT         server/mock-scada.js
+                    /api/stream  (SSE push, one frame per 2 s)
+                    /api/readings (REST pull, polled)
+                          |
+                          v
+  INTEGRATION       src/source.js                          <-- THE SEAM
+                    normalise payload -> {id, kW, ts, quality}
+                    watchdog: live / degraded / down
+                          |
+                          v
+  PROCESSING        src/store.js
+                    EMA smoothing (tau = 6 s)
+                    energy accumulation (kW x dt)
+                    roll-up by group and by substation
+                    ring-buffer history (90 / 240 samples)
+                          |
+              +-----------+-----------+
+              v                       v
+  DERIVATION  src/electrical.js       src/limits.js
+              V, I, PF, kVAr, kVA     limit evaluation
+              energy, losses, CO2     on-delay, hysteresis, latch
+              per-substation bus      episode log
+              |                       |
+              +-----------+-----------+
+                          v
+  RENDER            src/app.js  (1 Hz loop)
+                    overview.js | pages.js | ui.js
+                          |
+                          v
+  PRESENTATION      KPI tiles | charts | tables | alarm lists | SLD</div>
+  <p class="tbl-cap"><b>Figure 4.1</b> &mdash; The complete data pipeline.<span class="pv pv-impl">IMPL</span></p>
+
+  <h3>4.2 Stage detail</h3>
+  <table>
+    <thead><tr><th style="width:30mm">Stage</th><th style="width:34mm">Module</th><th>Transformation applied</th></tr></thead>
+    <tbody>
+      <tr><td>Origin</td><td><code>simulator.js</code></td><td>Generates a kW value per point from its group's diurnal profile, plus mean-reverting noise, occasional excursions and comms dropouts. Points in dropout are <em>omitted</em> from the payload, never sent as zero.</td></tr>
+      <tr><td>Transport</td><td><code>mock-scada.js</code></td><td>Serialises the sample set to JSON and pushes it over SSE or serves it on request.</td></tr>
+      <tr><td>Integration</td><td><code>source.js</code></td><td>Normalises field-name variants, coerces numerics, discards malformed rows, and tracks feed health independently of content.</td></tr>
+      <tr><td>Smoothing</td><td><code>store.js</code></td><td>Exponential moving average with a 6-second time constant. The raw sample is retained alongside.</td></tr>
+      <tr><td>Accumulation</td><td><code>store.js</code></td><td>Integrates smoothed power over elapsed time into energy, per point and site-wide.</td></tr>
+      <tr><td>Aggregation</td><td><code>store.js</code></td><td>Sums points into group and substation roll-ups on every ingest; generation is signed negative in load groups but positive in the generation group.</td></tr>
+      <tr><td>Derivation</td><td><code>electrical.js</code></td><td>Computes all electrical quantities from real power using standard three-phase relationships.</td></tr>
+      <tr><td>Evaluation</td><td><code>limits.js</code></td><td>Compares the smoothed value against warning and alarm limits with timing and hysteresis rules.</td></tr>
+      <tr><td>Render</td><td><code>app.js</code> + views</td><td>Writes only the DOM cells whose value changed. The displayed screen is rendered; others are not.</td></tr>
+    </tbody>
+  </table>
+  <p class="tbl-cap"><b>Table 4.1</b> &mdash; Transformation applied at each pipeline stage.<span class="pv pv-impl">IMPL</span></p>
+
+  <h3>4.3 The payload contract</h3>
+  <p>Both transports carry an identical structure. This is the contract a real SCADA gateway must
+  satisfy:<span class="pv pv-impl">IMPL</span></p>
+  <div class="formula">{
+  "ts": 1785755194099,          <span class="cmt">// epoch ms, when the frame was assembled</span>
+  "daylight": true,             <span class="cmt">// optional; gates solar under-performance limits</span>
+  "readings": [
+    { "id": "TW-01",            <span class="cmt">// must match a tag in register.js</span>
+      "kW": 14.8,               <span class="cmt">// instantaneous demand; generation is POSITIVE</span>
+      "ts": 1785755194099,      <span class="cmt">// when sampled AT THE METER, not on arrival</span>
+      "quality": "good" }       <span class="cmt">// "good" | "bad"</span>
+  ]
+}</div>
+
+  <div class="callout callout--warn">
+    <div class="callout-title">Contract rule &mdash; unreachable meters</div>
+    <p>A meter that cannot be reached must be <strong>omitted from the readings array entirely</strong>.
+    It must never be sent as <code>0</code>. The dashboard distinguishes "offline" from "drawing
+    nothing", and transmitting zeros would destroy that distinction &mdash; a genuinely dead circuit
+    and a failed communications link would become indistinguishable.<span class="pv pv-impl">IMPL</span></p>
+  </div>
+
+  <h3>4.4 Connecting real telemetry</h3>
+  <p>Because every screen reads from the models rather than the feed, replacing simulated data with
+  real data requires changing one module. In <code>src/app.js</code> the source is constructed with
+  a mode and two URLs; pointing those at a real gateway is sufficient. The source mode is also
+  switchable at runtime from the header.<span class="pv pv-impl">IMPL</span></p>
+  <p>The reader is tolerant of common field-name variants &mdash; <code>tag</code> or
+  <code>pointId</code> for <code>id</code>, <code>kw</code> or <code>value</code> for
+  <code>kW</code>, <code>timestamp</code> for <code>ts</code> &mdash; which reduces the amount of
+  adaptation a gateway needs.<span class="pv pv-impl">IMPL</span></p>
+</section>

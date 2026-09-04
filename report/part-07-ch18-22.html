@@ -1,0 +1,546 @@
+<!-- ============================================================= CHAPTER 18 -->
+<section class="chapter" id="ch18" data-title="Units, Power vs Energy" data-num="18">
+  <div class="ch-head">
+    <span class="ch-num">Chapter 18</span>
+    <h2>Units &amp; Measurements &mdash; Power versus Energy</h2>
+    <p class="ch-intro">Every unit appearing in the dashboard, and the distinction that causes more
+    confusion than any other in this domain.</p>
+  </div>
+
+  <h3>18.1 Units in use</h3>
+  <table>
+    <thead><tr><th style="width:20mm">Unit</th><th style="width:36mm">Name</th><th style="width:22mm">Measures</th><th>Where it appears</th></tr></thead>
+    <tbody>
+      <tr><td>kW</td><td>kilowatt</td><td>Power</td><td>Point readings, limits, group and substation roll-ups, all tables</td></tr>
+      <tr><td>MW</td><td>megawatt</td><td>Power</td><td>KPI tiles, flow stats, connected capacity, max demand</td></tr>
+      <tr><td>kWh</td><td>kilowatt-hour</td><td>Energy</td><td>Session energy, per-point energy, energy by group, losses</td></tr>
+      <tr><td>MWh</td><td>megawatt-hour</td><td>Energy</td><td>Automatic switch above 1,000 kWh</td></tr>
+      <tr><td>kVA</td><td>kilovolt-ampere</td><td>Apparent power</td><td>Transformer ratings, installed capacity</td></tr>
+      <tr><td>MVA</td><td>megavolt-ampere</td><td>Apparent power</td><td>KPI sub-line beneath reactive power</td></tr>
+      <tr><td>kVAr</td><td>reactive volt-ampere</td><td>Reactive power</td><td>Per-substation measurements table</td></tr>
+      <tr><td>MVAR</td><td>mega reactive VA</td><td>Reactive power</td><td>KPI tile</td></tr>
+      <tr><td>kV</td><td>kilovolt</td><td>Voltage</td><td>Voltage KPI, voltage profile, per-substation table, SLD</td></tr>
+      <tr><td>V</td><td>volt</td><td>Voltage</td><td>LT nominal (400 V) in the model constants</td></tr>
+      <tr><td>A</td><td>ampere</td><td>Current</td><td>Peak current tile, per-substation table, SLD nodes</td></tr>
+      <tr><td>Hz</td><td>hertz</td><td>Frequency</td><td>Frequency KPI and trend chart</td></tr>
+      <tr><td>kWp</td><td>kilowatt peak</td><td>Solar capacity</td><td>Installed solar capacity</td></tr>
+      <tr><td>t</td><td>tonne</td><td>Mass (CO&#8322;)</td><td>CO&#8322; avoided tile</td></tr>
+      <tr><td>kg/kWh</td><td>&mdash;</td><td>Emission factor</td><td>Constant, 0.42, used for CO&#8322;</td></tr>
+      <tr><td>%</td><td>percent</td><td>Ratio</td><td>Loading, efficiency, load factor, imbalance, % of limit, vs typical</td></tr>
+      <tr><td>acres, km, gallons</td><td>&mdash;</td><td>Site data</td><td>Register facts: 360 acres, 38 km HT, 108 km LT, tank capacities</td></tr>
+    </tbody>
+  </table>
+  <p class="tbl-cap"><b>Table 18.1</b> &mdash; Complete unit inventory.<span class="pv pv-impl">IMPL</span>
+  Note that no currency unit appears anywhere: the dashboard contains no tariff data and performs
+  no cost calculation.</p>
+
+  <h3>18.2 Conversions used</h3>
+  <div class="formula">1 MW   = 1,000 kW          1 MWh  = 1,000 kWh
+1 MVA  = 1,000 kVA         1 MVAR = 1,000 kVAr
+1 kV   = 1,000 V           1 t    = 1,000 kg
+
+Display thresholds implemented:
+  energy  switches kWh -> MWh at 1,000 kWh
+  power   KPI tiles always MW; tables always kW
+  CO2     always reported in tonnes (kg / 1000)</div>
+
+  <h3>18.3 Power versus energy &mdash; the central distinction</h3>
+  <div class="callout">
+    <div class="callout-title">The distinction in one line</div>
+    <p><strong>Power</strong> is the <em>rate</em> at which electricity is being used, measured at
+    an instant. <strong>Energy</strong> is the <em>quantity</em> used over a period. Power is the
+    speedometer; energy is the odometer.</p>
+  </div>
+
+  <table>
+    <thead><tr><th style="width:34mm">&nbsp;</th><th style="width:52mm">Power</th><th>Energy</th></tr></thead>
+    <tbody>
+      <tr><td>What it measures</td><td>Rate of use, right now</td><td>Total used over a period</td></tr>
+      <tr><td>Units</td><td>W, kW, MW</td><td>Wh, kWh, MWh</td></tr>
+      <tr><td>Car analogy</td><td>Speedometer &mdash; 90 km/h</td><td>Odometer &mdash; 450 km travelled</td></tr>
+      <tr><td>Can it be zero?</td><td>Yes, whenever nothing is running</td><td>Only before anything has ever run</td></tr>
+      <tr><td>Direction</td><td>Rises and falls continuously</td><td>Only ever increases</td></tr>
+      <tr><td>Billed as</td><td>Peak demand charge</td><td>Energy charge (the bulk of a bill)</td></tr>
+      <tr><td>On this dashboard</td><td>KPI tile, point table "Now", load trend, flow diagram</td><td>Energy Today tile, Energy Analytics, session energy per point</td></tr>
+    </tbody>
+  </table>
+  <p class="tbl-cap"><b>Table 18.2</b> &mdash; Power and energy compared.<span class="pv pv-dom">DOMAIN</span></p>
+
+  <h4>18.3.1 The relationship</h4>
+  <div class="formula">Energy = Power &times; Time
+
+  <span class="cmt">Worked example (illustrative):</span>
+  A pump draws 10 kW and runs for 5 hours.
+  Energy = 10 kW &times; 5 h = 50 kWh
+
+  <span class="cmt">As actually implemented, per ingest tick:</span>
+  E += P &times; &Delta;t &divide; 3,600,000        <span class="cmt">&Delta;t in milliseconds</span>
+
+  <span class="cmt">Same example over one 2-second tick at 4,500 kW:</span>
+  E += 4,500 &times; 2,000 &divide; 3,600,000 = 2.5 kWh</div>
+  <p>The 3,600,000 divisor converts milliseconds to hours (1 h = 3,600,000 ms). The implementation
+  rejects intervals longer than 60 seconds, so a communications gap does not create a fictitious
+  energy spike.<span class="pv pv-impl">IMPL</span></p>
+
+  <h3>18.4 The related quantities</h3>
+  <table>
+    <thead><tr><th style="width:30mm">Term</th><th style="width:16mm">Unit</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td>Consumption</td><td>kWh</td><td>Energy drawn by loads over a period.</td></tr>
+      <tr><td>Generation</td><td>kW / kWh</td><td>Electricity produced on site. Here, solar only.</td></tr>
+      <tr><td>Demand</td><td>kW</td><td>Power drawn at a given moment.</td></tr>
+      <tr><td>Peak demand</td><td>kW</td><td>The highest demand reached in a period.</td></tr>
+      <tr><td>Load</td><td>kW</td><td>Both the consuming devices and the power they draw.</td></tr>
+      <tr><td>Capacity</td><td>kW / kVA</td><td>The maximum the network can carry safely.</td></tr>
+      <tr><td>Net import</td><td>kWh</td><td>Consumption minus on-site generation &mdash; what the grid actually supplied.</td></tr>
+    </tbody>
+  </table>
+  <p class="tbl-cap"><b>Table 18.3</b> &mdash; Related quantities and their units.</p>
+
+  <h3>18.5 Precision and formatting rules</h3>
+  <p>The implementation formats numbers to a precision a reader can act on:<span class="pv pv-impl">IMPL</span></p>
+  <ul class="tight">
+    <li>Values at or above 100 &mdash; no decimals (452 kW, not 452.184 kW)</li>
+    <li>10 to 100 &mdash; one decimal</li>
+    <li>Below 10 &mdash; two decimals</li>
+    <li>Units always travel with the number, never only in a column heading</li>
+    <li>Columns of figures use tabular (fixed-width) digits so they align vertically</li>
+  </ul>
+</section>
+
+<!-- ============================================================= CHAPTER 19 -->
+<section class="chapter" id="ch19" data-title="Charts, Calculations &amp; Relationships" data-num="19">
+  <div class="ch-head">
+    <span class="ch-num">Chapter 19</span>
+    <h2>Charts, Calculations &amp; Metric Relationships</h2>
+    <p class="ch-intro">Every visualisation type, every verified formula, and how the metrics
+    connect to one another.</p>
+  </div>
+
+  <h3>19.1 Chart inventory</h3>
+  <table>
+    <thead><tr><th style="width:32mm">Chart</th><th style="width:20mm">X-axis</th><th style="width:20mm">Y-axis</th><th>Purpose and what to look for</th></tr></thead>
+    <tbody>
+      <tr><td>Load trend (Overview)</td><td>Clock time</td><td>kW</td><td>Demand shape against typical. Look for a sustained gap above the dashed reference.</td></tr>
+      <tr><td>Sparkline (table rows)</td><td>Sample index</td><td>kW</td><td>24-sample micro-trend per point, with a reference line at typical. Look for a rising staircase.</td></tr>
+      <tr><td>Point detail trend</td><td>Clock time</td><td>kW</td><td>One point with warning, alarm and rated lines drawn on. Look for how close the trace runs to the limit lines.</td></tr>
+      <tr><td>Distribution doughnut</td><td>&mdash;</td><td>&mdash;</td><td>Share of demand by substation. Structural; expect stability.</td></tr>
+      <tr><td>Category bars</td><td>kW</td><td>Group</td><td>Ranked group demand. Colour signals alarm state, not magnitude.</td></tr>
+      <tr><td>Energy gauge</td><td>&mdash;</td><td>&mdash;</td><td>Energy against expected-for-elapsed. Compare fill to the tick mark, not to full scale.</td></tr>
+      <tr><td>Single-line diagram</td><td>&mdash;</td><td>&mdash;</td><td>Network topology with live values. Look for an amber or red substation outline.</td></tr>
+      <tr><td>Voltage profile</td><td>Clock time</td><td>kV</td><td>Three phases against statutory limits. Look for traces separating.</td></tr>
+      <tr><td>Frequency trend</td><td>Clock time</td><td>Hz</td><td>Grid frequency against its band. Look for sustained excursion.</td></tr>
+      <tr><td>Power flow diagram</td><td>&mdash;</td><td>&mdash;</td><td>Proportional flow, source to group. Compare ribbon thicknesses.</td></tr>
+      <tr><td>Energy mix doughnut</td><td>&mdash;</td><td>&mdash;</td><td>Import vs solar vs losses. Look at the losses share.</td></tr>
+      <tr><td>Load-duration curve</td><td>% of period</td><td>kW</td><td>Time spent near peak. A steep left edge means peaks are brief.</td></tr>
+      <tr><td>Solar gauge and trend</td><td>Clock time</td><td>kW</td><td>Output against expected. Look for a persistent gap.</td></tr>
+      <tr><td>Forecast band chart</td><td>Clock hour</td><td>kW</td><td>24 h projection with confidence range. Look at the peak and its headroom.</td></tr>
+      <tr><td>Status grid (breakers)</td><td>&mdash;</td><td>&mdash;</td><td>Per-device position cards. Look for anything not Closed or Standby.</td></tr>
+      <tr><td>Horizontal bars</td><td>Value or %</td><td>Category</td><td>Used for feeders, transformer fleet, energy by group and utilisation.</td></tr>
+    </tbody>
+  </table>
+  <p class="tbl-cap"><b>Table 19.1</b> &mdash; All sixteen visualisation types.<span class="pv pv-impl">IMPL</span>
+  Time axes cover the current session only; there is no historical range selection.</p>
+
+  <h4>19.1.1 Common chart behaviour</h4>
+  <ul class="tight">
+    <li>All charts are hand-authored SVG; no charting library is used.</li>
+    <li>Line and multi-series charts carry a crosshair and tooltip, reachable by pointer and by keyboard arrow keys.</li>
+    <li>Data marks are solid; reference lines (limits, typical) are dashed hairlines with direct labels, because a dashed line here genuinely means "threshold".</li>
+    <li>Y-axes zoom to the data range rather than anchoring at zero, which is safe because the marks are lines rather than filled areas. Axes are always labelled so the offset baseline is explicit.<span class="pv pv-impl">IMPL</span></li>
+  </ul>
+
+  <h3>19.2 Verified calculations</h3>
+  <p>Every formula below was read directly from the implementation. Where a value is a modelling
+  assumption rather than a measurement, that is stated.</p>
+
+  <h4>19.2.1 Smoothing</h4>
+  <div class="formula"><span class="cmt">src/store.js</span>
+&alpha; = 1 &minus; e^(&minus;&Delta;t / &tau;)          &tau; = 6,000 ms
+value = previous + &alpha; &times; (new &minus; previous)
+
+Input:  raw kW reading, elapsed ms since the last sample
+Output: smoothed kW  |  Why: raw jitter reads as plant instability
+Note:   both the smoothed and raw values are retained and displayed</div>
+
+  <h4>19.2.2 Energy accumulation</h4>
+  <div class="formula"><span class="cmt">src/store.js (per point and site), src/electrical.js (site)</span>
+E += P &times; &Delta;t &divide; 3,600,000        <span class="cmt">gaps &gt; 60,000 ms rejected</span>
+Input: smoothed kW, elapsed ms   Output: kWh</div>
+
+  <h4>19.2.3 Three-phase electrical derivations</h4>
+  <div class="formula"><span class="cmt">src/electrical.js &mdash; all derived from real power P</span>
+Q  = P &times; tan(arccos(PF))                  <span class="cmt">reactive power, kVAr</span>
+S  = &radic;(P&sup2; + Q&sup2;)                          <span class="cmt">apparent power, kVA</span>
+PF = P &divide; S                                 <span class="cmt">site power factor</span>
+I  = (P &times; 1000) &divide; (&radic;3 &times; V &times; 1000 &times; PF)   <span class="cmt">line current, A</span>
+
+<span class="cmt">These are standard three-phase relationships, so the derived</span>
+<span class="cmt">quantities remain mutually consistent by construction.</span></div>
+
+  <h4>19.2.4 Modelled quantities (assumptions, not measurements)</h4>
+  <div class="formula"><span class="cmt">src/electrical.js</span>
+loading   = clamp(kW &divide; capacityKw, 0, 1.2)
+PF_bus    = clamp(0.975 &minus; loading&times;0.09 + 0.006&middot;sin(&phi;), 0.82, 0.99)
+V_phase   = 11 &times; (1 &minus; loading&times;0.028 + imbalance + noise)
+frequency = clamp(50 + 0.045&middot;sin(&phi;) + noise, 49.7, 50.3)
+lossFrac  = 0.018 + 0.012 &times; clamp(kW &divide; 8000, 0, 1)     <span class="cmt">1.8% .. 3.0%</span>
+efficiency= (1 &minus; lossFrac) &times; 100
+CO2       = solar kWh &times; 0.42 kg/kWh</div>
+  <p>Power factor degrading as load rises, and voltage drooping under load, are physically correct
+  behaviours; the specific coefficients are modelling choices, not measured
+  characteristics.<span class="pv pv-int">INTERP</span></p>
+
+  <h4>19.2.5 Register-derived quantities</h4>
+  <div class="formula"><span class="cmt">src/register.js</span>
+ratedKw       = unit count &times; estimated unit kW     <span class="cmt">unit kW is ESTIMATED</span>
+alarmKw       = ratedKw &times; group headroom            <span class="cmt">1.15 .. 1.40</span>
+warnKw        = ratedKw + (alarmKw &minus; ratedKw) &times; 0.55
+capacityKw    = round(installed kVA &times; 0.9)          <span class="cmt">0.9 PF assumed</span>
+
+<span class="cmt">Solar under-output limits are RELATIVE, not absolute:</span>
+lowAlarm = expected output &times; 0.35
+lowWarn  = expected output &times; 0.60
+<span class="cmt">evaluated only when the solar profile factor exceeds 0.2 (daylight)</span></div>
+  <div class="callout">
+    <div class="callout-title">Why the warning limit is derived from the gap</div>
+    <p>An earlier revision set the warning limit at a flat 85% of the alarm limit. For groups with
+    tight headroom &mdash; street lighting at 1.15 &mdash; that produced a warning limit
+    <em>below</em> rated demand, so those circuits would have alarmed at normal load. Deriving it
+    from the gap between rated and alarm makes that impossible for any headroom value. The
+    verification script asserts the resulting ladder is coherent for every
+    point.<span class="pv pv-impl">IMPL</span></p>
+  </div>
+
+  <h4>19.2.6 Analysis calculations</h4>
+  <div class="formula"><span class="cmt">src/store.js, src/pages.js</span>
+expected      = ratedKw &times; profileFactor(group profile, hour)
+deltaVsExpected = (value &divide; expected) &minus; 1
+pctOfLimit    = (value &divide; limit) &times; 100
+avgDemand     = energy kWh &divide; elapsed hours
+loadFactor    = (avgDemand &divide; peakDemand) &times; 100
+imbalance     = max|V_phase &minus; V_avg| &divide; V_avg &times; 100
+performanceRatio = (output &divide; expected) &times; 100      <span class="cmt">if expected &gt; 0.5 kW</span>
+headroom      = (capacity &minus; forecastPeak) &divide; capacity &times; 100
+
+<span class="cmt">Forecast, per hour h over a 24-hour horizon:</span>
+v(h)     = &Sigma;<sub>profiles</sub> ratedByProfile &times; profileFactor(profile, h)
+spread   = 0.06 + max(0, k&minus;2)/22 &times; 0.14
+band     = v &times; (1 &plusmn; spread)</div>
+
+  <h4>19.2.7 Alarm evaluation</h4>
+  <div class="formula"><span class="cmt">src/limits.js &mdash; two independent stages</span>
+STAGE 1  confirm the physical CONDITION (drives the display)
+  rise:  severity confirmed after 6,000 ms continuously exceeded
+  fall:  clear requires value &lt; limit &times; (1 &minus; 0.04) for 12,000 ms
+         (for low limits: value &gt; limit &times; 1.04)
+
+STAGE 2  reconcile ANNUNCIATION (drives the alarm list)
+  open an episode unless within the 90,000 ms re-arm window
+  escalate an existing episode rather than opening a second
+  close only when the condition returns to normal
+
+QUALITY  stale &gt; 15,000 ms | offline &gt; 40,000 ms
+         start-up grace: never-heard-from is "pending", not an alarm</div>
+  <p>Separating condition from annunciation is what allows a point to <em>display</em> as over
+  limit while its alarm is held by the re-arm window &mdash; anti-flood machinery must never hide a
+  genuine fault.<span class="pv pv-impl">IMPL</span></p>
+
+  <h3>19.3 Metric relationships</h3>
+  <h4>19.3.1 Implemented in the application</h4>
+  <table>
+    <thead><tr><th style="width:44mm">Relationship</th><th style="width:40mm">Formula</th><th>Why it matters</th></tr></thead>
+    <tbody>
+      <tr><td>Power &rarr; Energy</td><td>E = P &times; t</td><td>Converts the operational quantity into the billing quantity.</td></tr>
+      <tr><td>Power + PF &rarr; Reactive</td><td>Q = P&middot;tan(arccos PF)</td><td>Quantifies capacity consumed without doing work.</td></tr>
+      <tr><td>Power + Reactive &rarr; Apparent</td><td>S = &radic;(P&sup2;+Q&sup2;)</td><td>Gives the load transformers must actually carry.</td></tr>
+      <tr><td>Power + Voltage + PF &rarr; Current</td><td>I = P&divide;(&radic;3&middot;V&middot;PF)</td><td>Current determines cable sizing and heating.</td></tr>
+      <tr><td>Energy &rarr; Average demand</td><td>avg = E &divide; hours</td><td>Feeds load factor.</td></tr>
+      <tr><td>Average + Peak &rarr; Load factor</td><td>LF = avg &divide; peak</td><td>Reveals how peaky the profile is.</td></tr>
+      <tr><td>Load + Capacity &rarr; Utilisation</td><td>U = load &divide; capacity</td><td>Drives loading bars and headroom.</td></tr>
+      <tr><td>Solar energy &rarr; CO&#8322;</td><td>CO&#8322; = kWh &times; 0.42</td><td>Converts generation into an environmental figure.</td></tr>
+      <tr><td>Rated &rarr; Limits</td><td>alarm = rated &times; headroom</td><td>Every alarm threshold descends from estimated ratings.</td></tr>
+      <tr><td>Value + Expected &rarr; Deviation</td><td>&Delta; = value&divide;expected &minus; 1</td><td>Turns a raw reading into a judgement.</td></tr>
+      <tr><td>Output + Expected &rarr; PR</td><td>PR = out &divide; expected</td><td>Separates a dawn array from a failed one.</td></tr>
+      <tr><td>Load &rarr; PF and Voltage</td><td>modelled coefficients</td><td>Higher loading lowers PF and depresses voltage.</td></tr>
+    </tbody>
+  </table>
+  <p class="tbl-cap"><b>Table 19.2</b> &mdash; Relationships actually implemented.<span class="pv pv-impl">IMPL</span></p>
+
+  <h4>19.3.2 Domain relationships not implemented</h4>
+  <p>The following are standard in this field but are <strong>absent from this implementation</strong>.
+  They are listed so their absence is explicit rather than assumed:</p>
+  <ul class="tight">
+    <li><strong>Energy &rarr; Cost.</strong> No tariff data exists and no monetary value is calculated anywhere.</li>
+    <li><strong>Consumption &rarr; CO&#8322;.</strong> Only <em>avoided</em> CO&#8322; from solar is computed; the emissions of imported energy are not.</li>
+    <li><strong>Peak demand &rarr; demand charge.</strong> Peak is tracked but never priced.</li>
+    <li><strong>Degree-days &rarr; weather normalisation.</strong> No weather input exists.</li>
+    <li><strong>Harmonics / THD.</strong> Not modelled or displayed.</li>
+  </ul>
+</section>
+
+<!-- ============================================================= CHAPTER 20 -->
+<section class="chapter" id="ch20" data-title="Data Sources &amp; Data Quality" data-num="20">
+  <div class="ch-head">
+    <span class="ch-num">Chapter 20</span>
+    <h2>Data Sources &amp; Data Quality</h2>
+    <p class="ch-intro">The origin and status of every class of value the dashboard displays. This
+    is the chapter to consult before citing any figure.</p>
+  </div>
+
+  <h3>20.1 Classification of every data class</h3>
+  <table>
+    <thead><tr><th style="width:40mm">Data class</th><th style="width:26mm">Status</th><th>Origin and qualification</th></tr></thead>
+    <tbody>
+      <tr><td>Asset counts</td><td><b>Real (static)</b></td><td>Stated in the source register: 2,157 buildings, 980 lights, 84 pumps, 14 tube wells, 475 boards, 13 solar systems, 20 lifts, 16 outstations.</td></tr>
+      <tr><td>Transformer fleet</td><td><b>Real (static)</b></td><td>109 units, 18,530 kVA, with the exact size mix. Reconciles exactly; asserted on every test run.</td></tr>
+      <tr><td>Named locations</td><td><b>Real (static)</b></td><td>Tube wells with locations, four filter plants, three overhead tanks with capacities, sixteen outstations.</td></tr>
+      <tr><td>Network structure</td><td><b>Real (static)</b></td><td>3 substations, 3 feeders, 8 VCBs at 11 kV, 38 km HT, 108 km LT, 360 acres.</td></tr>
+      <tr><td>Unit kW ratings</td><td><b>Estimated</b></td><td>Engineering estimates per asset type. <em>Not in the register.</em> Every limit descends from these.</td></tr>
+      <tr><td>Feeder allocation</td><td><b>Assumed</b></td><td>Which loads sit on which feeder is not stated. Must be corrected from the site SLD.</td></tr>
+      <tr><td>Transformer split</td><td><b>Assumed</b></td><td>Per-substation allocation assumed; fleet totals are real.</td></tr>
+      <tr><td>Circuit splits</td><td><b>Assumed</b></td><td>Lighting (980), pumps (84) and vertical transport (20) given only as totals; divided into circuits so they can be metered separately.</td></tr>
+      <tr><td>All live kW readings</td><td><b>Simulated</b></td><td>Generated by <code>simulator.js</code> from diurnal profiles with noise, excursions and dropouts.</td></tr>
+      <tr><td>Voltage, current, PF, Hz, kVAr</td><td><b>Simulated (derived)</b></td><td>Computed from simulated power via standard three-phase relationships.</td></tr>
+      <tr><td>Energy totals</td><td><b>Calculated from simulated</b></td><td>Genuine integration, but of simulated power.</td></tr>
+      <tr><td>Breaker positions</td><td><b>Simulated</b></td><td>Device count and four site names are real; positions are not.</td></tr>
+      <tr><td>Forecast</td><td><b>Modelled</b></td><td>Profile-based projection, not a trained prediction.</td></tr>
+      <tr><td>Alarm episodes</td><td><b>Real logic, simulated input</b></td><td>The alarm engine is production-grade; the readings it evaluates are simulated.</td></tr>
+      <tr><td>Historical data</td><td><b>None</b></td><td>Session memory only. No historian, no database, no persistence across reload.</td></tr>
+    </tbody>
+  </table>
+  <p class="tbl-cap"><b>Table 20.1</b> &mdash; Data classification.<span class="pv pv-impl">IMPL</span></p>
+
+  <div class="callout callout--crit">
+    <div class="callout-title">Statement required by the accuracy rule</div>
+    <p>No part of this dashboard currently displays real-time operational measurement. Every live
+    value is simulated. The dashboard is a fully functional monitoring application connected to a
+    simulated feed, not a monitoring application connected to plant. The distinction is marked in
+    the interface at the point of use and must be preserved in any onward
+    presentation.<span class="pv pv-impl">IMPL</span></p>
+  </div>
+
+  <h3>20.2 Simulation parameters</h3>
+  <table>
+    <thead><tr><th style="width:44mm">Parameter</th><th style="width:22mm">Value</th><th>Effect</th></tr></thead>
+    <tbody>
+      <tr><td>Noise amplitude</td><td>0.05</td><td>AR(1) innovation as a fraction of rated demand.</td></tr>
+      <tr><td>Mean reversion</td><td>0.18</td><td>Pull back toward the profile each tick.</td></tr>
+      <tr><td>Excursion chance</td><td>0.0015</td><td>Per point per tick; leaves roughly 5% of points excursing at any moment.</td></tr>
+      <tr><td>Dropout chance</td><td>0.0005</td><td>Roughly 3% of points offline at any moment.</td></tr>
+      <tr><td>Bad-quality chance</td><td>0.0003</td><td>Under 1% of points reporting bad quality.</td></tr>
+    </tbody>
+  </table>
+  <p class="tbl-cap"><b>Table 20.2</b> &mdash; Simulator event rates. These are per-point per-tick
+  probabilities; the resulting steady-state fraction is approximately probability &times; (event
+  duration &divide; tick interval).<span class="pv pv-impl">IMPL</span></p>
+
+  <h3>20.3 Data-quality handling</h3>
+  <p>The most important design decision in this area is that <strong>quality is a separate axis
+  from severity</strong>. A meter that has stopped reporting is not the same fact as a meter
+  correctly reporting zero, and the two are never conflated. The payload contract requires
+  unreachable meters to be omitted rather than zeroed, and the dashboard surfaces them as a
+  distinct communications condition.<span class="pv pv-impl">IMPL</span></p>
+  <p>Feed health is watchdogged independently of message content: <em>live</em> &rarr;
+  <em>degraded</em> after 8 s of silence &rarr; <em>down</em> after 25 s. When the feed dies a
+  banner states so and the view dims, rather than the display freezing on stale values while
+  appearing healthy.</p>
+</section>
+
+<!-- ============================================================= CHAPTER 21 -->
+<section class="chapter" id="ch21" data-title="Reading the Dashboard &amp; Design Rationale" data-num="21">
+  <div class="ch-head">
+    <span class="ch-num">Chapter 21</span>
+    <h2>Reading the Dashboard &amp; Design Rationale</h2>
+    <p class="ch-intro">The recommended workflow, and why each class of feature exists.</p>
+  </div>
+
+  <h3>21.1 Recommended workflow</h3>
+  <table>
+    <thead><tr><th style="width:12mm">Step</th><th style="width:36mm">Action</th><th>What you are establishing</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Overview &mdash; KPI strip</td><td>Is supply quality acceptable? Four indicators: power factor, frequency, voltage, plus total demand against typical.</td></tr>
+      <tr><td>2</td><td>Overview &mdash; alarms</td><td>Is any location over limit? Empty means no.</td></tr>
+      <tr><td>3</td><td>Overview &mdash; trend and SLD</td><td>Is demand tracking its normal shape, and are all substations neutral?</td></tr>
+      <tr><td>4</td><td>Check the connection pill</td><td>Confirm the data is current. A paused or lost feed invalidates steps 1&ndash;3.</td></tr>
+      <tr><td>5</td><td>If an alarm exists &rarr; Load Monitoring</td><td>Filter to "only points needing attention"; identify the specific location.</td></tr>
+      <tr><td>6</td><td>Open the point detail</td><td>See the trend against its limits and the point's alarm history.</td></tr>
+      <tr><td>7</td><td>If supply-related &rarr; Voltage &amp; Frequency</td><td>Distinguish a load problem from a supply problem.</td></tr>
+      <tr><td>8</td><td>If structural &rarr; Power Flow / Switchgear</td><td>Localise to a feeder, substation or breaker.</td></tr>
+      <tr><td>9</td><td>For review &rarr; Energy Analytics / Reports</td><td>Period totals, consumption drivers, CSV export.</td></tr>
+      <tr><td>10</td><td>For planning &rarr; Forecasting</td><td>Anticipated peak and capacity headroom.</td></tr>
+    </tbody>
+  </table>
+  <p class="tbl-cap"><b>Table 21.1</b> &mdash; Recommended reading order.<span class="pv pv-int">INTERP</span></p>
+
+  <div class="callout">
+    <div class="callout-title">The four-check routine</div>
+    <p>For continuous monitoring, steps 1&ndash;4 take a few seconds and are sufficient. If the KPI
+    indicators are green, the alarm panel is empty, the trend tracks its reference and the feed is
+    live, no further inspection is warranted.</p>
+  </div>
+
+  <h3>21.2 Why each feature exists</h3>
+  <table>
+    <thead><tr><th style="width:38mm">Feature</th><th>Rationale</th></tr></thead>
+    <tbody>
+      <tr><td>KPI tiles</td><td>Six parameters characterise the electrical state. Presenting them as large single figures makes the normal state readable from across a room, which is what makes monitoring continuous rather than periodic.</td></tr>
+      <tr><td>"Typical for this hour"</td><td>A raw figure cannot be judged. 4,500 kW is normal at 20:00 and alarming at 04:00. Every reading carries its reference so a judgement is possible without knowing the site by heart.</td></tr>
+      <tr><td>Status as icon + word + colour</td><td>Status must survive colour-blindness, greyscale printing and glance-reading under stress. Colour alone fails all three.</td></tr>
+      <tr><td>Three severity tiers</td><td>ISA-18.2 recommends no more than three or four. Beyond that, operators stop trusting the distinction.</td></tr>
+      <tr><td>On-delay and hysteresis</td><td>Without them a value sitting on a threshold alarms and clears endlessly, and operators learn to ignore the alarm list.</td></tr>
+      <tr><td>Latching and acknowledgement</td><td>An alarm that disappears unseen erodes trust in the system permanently. Persistence plus a recorded acknowledgement makes response auditable.</td></tr>
+      <tr><td>Ringback</td><td>Intermittent faults are the ones most worth catching and the easiest to miss.</td></tr>
+      <tr><td>Offline distinct from zero</td><td>A dead circuit and a failed communications link demand different responses. Conflating them is a classic and expensive fault in this domain.</td></tr>
+      <tr><td>Feed watchdog and banner</td><td>The most dangerous failure of a live dashboard is silently freezing on stale values while appearing healthy.</td></tr>
+      <tr><td>Smoothing</td><td>Raw sensor jitter reads as instability. Filtering before display and before limit evaluation prevents both false alarm and false alarm about stability.</td></tr>
+      <tr><td>Single-line diagram</td><td>It mirrors how an electrical engineer already thinks about the plant, so no translation from a generic chart is required.</td></tr>
+      <tr><td>Load-duration curve</td><td>Answers "how much of the time are we near peak?", which a time-series trend structurally cannot.</td></tr>
+      <tr><td>Performance ratio for solar</td><td>Absolute output cannot distinguish a healthy array at dawn from a failed one at noon.</td></tr>
+      <tr><td>Sortable, filterable table</td><td>110 locations cannot be scanned. Default severity sort puts problems on top without interaction.</td></tr>
+      <tr><td>CSV export</td><td>Decision-makers frequently need the period trend in a spreadsheet more than another live chart.</td></tr>
+      <tr><td>REG / SIM provenance badges</td><td>Without them, modelled values would carry the same visual authority as measured ones.</td></tr>
+      <tr><td>Register data-gaps panel</td><td>Surfacing documentary discrepancies where they are used prevents an assumption being mistaken for a measurement.</td></tr>
+      <tr><td>Wall-display density</td><td>These dashboards are frequently mounted and read at distance.</td></tr>
+      <tr><td>Forecasting method note</td><td>A forecast that does not disclose its method invites misplaced confidence.</td></tr>
+    </tbody>
+  </table>
+  <p class="tbl-cap"><b>Table 21.2</b> &mdash; Feature rationale.<span class="pv pv-int">INTERP</span></p>
+</section>
+
+<!-- ============================================================= CHAPTER 22 -->
+<section class="chapter" id="ch22" data-title="Findings, Glossary &amp; Conclusion" data-num="22">
+  <div class="ch-head">
+    <span class="ch-num">Chapter 22</span>
+    <h2>Technical Findings, Glossary &amp; Conclusion</h2>
+    <p class="ch-intro">Observations arising from the analysis, the consolidated glossary, and
+    closing assessment.</p>
+  </div>
+
+  <h3>22.1 Technical findings</h3>
+
+  <h4>F-1 &nbsp;Gross versus net demand inconsistency</h4>
+  <p>The <em>Total Active Power</em> KPI displays gross site load, while the load trend chart
+  directly beneath it plots <em>net</em> demand (load minus solar generation) and is labelled "Net
+  demand". At present solar contributes under 1% of site demand, so the two differ by a negligible
+  margin, but the labels describe different quantities. If generation capacity grows the divergence
+  becomes material.<span class="pv pv-impl">IMPL</span> <b>Recommendation:</b> align the two, or
+  label the KPI explicitly as gross.</p>
+
+  <h4>F-2 &nbsp;Solar trend is extrapolated from a single array</h4>
+  <p>The generation trend on the Solar screen scales one array's history by the array count rather
+  than summing all thirteen. Aggregate magnitude is correct and the shape is representative, but
+  divergence between arrays will not appear in that chart. Per-array divergence is visible in the
+  table beneath, so the information is available &mdash; but the chart alone would not reveal a
+  single failing array.<span class="pv pv-impl">IMPL</span></p>
+
+  <h4>F-3 &nbsp;No persistence</h4>
+  <p>All readings, energy totals and alarm history exist only in browser memory. Reloading the page
+  discards them. For a production deployment a historian would be required, both for record-keeping
+  and to enable the trained forecast that the Forecasting screen currently cannot
+  provide.<span class="pv pv-impl">IMPL</span></p>
+
+  <h4>F-4 &nbsp;No authentication or authorisation</h4>
+  <p>Any user reaching the URL has full access, including alarm acknowledgement. Acknowledgement is
+  recorded against the fixed label "operator" rather than an identified user, so the audit trail
+  records that an alarm was acknowledged but not by whom.<span class="pv pv-impl">IMPL</span></p>
+
+  <h4>F-5 &nbsp;Every limit rests on estimated ratings</h4>
+  <p>The most consequential finding. No unit kW rating is measured; all are engineering estimates,
+  and every warning and alarm limit derives from them. The alarm logic is sound, but the thresholds
+  it enforces are provisional until real nameplate or metered data replaces the
+  estimates.<span class="pv pv-impl">IMPL</span></p>
+
+  <h4>F-6 &nbsp;Documentary discrepancy in the register</h4>
+  <p>The register states 14 tube wells with 12 operational, but lists 11 with locations. One
+  operational tube well is unaccounted for. Raised with the facilities team rather than
+  reconciled.<span class="pv pv-impl">IMPL</span></p>
+
+  <h4>F-7 &nbsp;Items that could not be verified</h4>
+  <ul class="tight">
+    <li><strong>Actual per-substation transformer allocation</strong> &mdash; not stated in the register; could not be verified from the available implementation or source document.</li>
+    <li><strong>Actual feeder-to-load allocation</strong> &mdash; not stated; could not be verified.</li>
+    <li><strong>Satellite station ratings</strong> &mdash; the register gives a count of 13 with no kVA; could not be verified.</li>
+    <li><strong>Real breaker roles and positions</strong> &mdash; four sites are named but roles are not; could not be verified.</li>
+    <li><strong>Distribution board identities</strong> &mdash; 475 stated as a total with no tags or locations; could not be verified.</li>
+    <li><strong>Any historical consumption</strong> &mdash; none exists in the source document; could not be verified.</li>
+  </ul>
+
+  <h3>22.2 Consolidated glossary</h3>
+  <table>
+    <thead><tr><th style="width:20mm">Term</th><th style="width:34mm">Full form</th><th style="width:12mm">Unit</th><th style="width:46mm">Simple meaning</th><th>Use in dashboard</th></tr></thead>
+    <tbody>
+      <tr><td>A</td><td>Ampere</td><td>A</td><td>How much electricity is flowing</td><td>Per-substation table, SLD, peak current tile</td></tr>
+      <tr><td>Alarm limit</td><td>&mdash;</td><td>kW</td><td>The threshold that raises an alarm</td><td>Point table, detail panel</td></tr>
+      <tr><td>Apparent power</td><td>&mdash;</td><td>kVA</td><td>Total load cables must carry</td><td>KPI sub-line, transformer ratings</td></tr>
+      <tr><td>Capacity</td><td>&mdash;</td><td>kW/kVA</td><td>Maximum the network can carry</td><td>Loading bars, headroom</td></tr>
+      <tr><td>DB</td><td>Distribution board</td><td>&mdash;</td><td>Panel splitting supply into circuits</td><td>Switchgear summary</td></tr>
+      <tr><td>Demand</td><td>&mdash;</td><td>kW</td><td>Power drawn at this moment</td><td>Throughout</td></tr>
+      <tr><td>EMA</td><td>Exponential moving average</td><td>&mdash;</td><td>Smoothing that favours recent readings</td><td>Applied to all readings</td></tr>
+      <tr><td>Energy</td><td>&mdash;</td><td>kWh/MWh</td><td>Quantity used over time &mdash; the odometer</td><td>Energy tile, Energy Analytics</td></tr>
+      <tr><td>Feeder</td><td>&mdash;</td><td>&mdash;</td><td>Cable circuit from substation to loads</td><td>Power Flow, Switchgear</td></tr>
+      <tr><td>Frequency</td><td>&mdash;</td><td>Hz</td><td>Cycles per second; must stay near 50</td><td>KPI, frequency chart</td></tr>
+      <tr><td>Generation</td><td>&mdash;</td><td>kW/kWh</td><td>Electricity produced on site</td><td>Solar screen, energy mix</td></tr>
+      <tr><td>HT / LT</td><td>High / low tension</td><td>kV / V</td><td>High- and low-voltage distribution</td><td>SLD, register facts</td></tr>
+      <tr><td>Hysteresis</td><td>&mdash;</td><td>%</td><td>Margin required to clear an alarm</td><td>Alarm engine, 4%</td></tr>
+      <tr><td>kVAr</td><td>Reactive volt-ampere</td><td>kVAr</td><td>Power that does no useful work</td><td>KPI, per-substation table</td></tr>
+      <tr><td>kW</td><td>Kilowatt</td><td>kW</td><td>Rate of use &mdash; the speedometer</td><td>Throughout</td></tr>
+      <tr><td>kWh</td><td>Kilowatt-hour</td><td>kWh</td><td>Amount used; the billing unit</td><td>Energy figures</td></tr>
+      <tr><td>kWp</td><td>Kilowatt peak</td><td>kWp</td><td>Solar output in full sun</td><td>Solar capacity</td></tr>
+      <tr><td>L-L</td><td>Line-to-line</td><td>kV</td><td>Voltage between two phases</td><td>Voltage KPI and profile</td></tr>
+      <tr><td>Load factor</td><td>&mdash;</td><td>%</td><td>Average divided by peak demand</td><td>Energy Analytics, Reports</td></tr>
+      <tr><td>MW / MWh</td><td>Mega- watt / watt-hour</td><td>MW/MWh</td><td>1,000 kW / 1,000 kWh</td><td>KPI tiles, large totals</td></tr>
+      <tr><td>Peak demand</td><td>&mdash;</td><td>kW</td><td>Highest demand in the period</td><td>Metric tile, Energy Analytics</td></tr>
+      <tr><td>PF</td><td>Power factor</td><td>&mdash;</td><td>Efficiency score from 0 to 1</td><td>KPI, per-substation table, SLD</td></tr>
+      <tr><td>Phase imbalance</td><td>&mdash;</td><td>%</td><td>Unequal loading across three phases</td><td>Voltage &amp; Frequency</td></tr>
+      <tr><td>Point / Tag</td><td>&mdash;</td><td>&mdash;</td><td>Unique ID for one location</td><td>Every table and alarm</td></tr>
+      <tr><td>Performance ratio</td><td>&mdash;</td><td>%</td><td>Solar output against expected</td><td>Solar screen</td></tr>
+      <tr><td>R-Y, Y-B, B-R</td><td>Phase pairs</td><td>kV</td><td>The three phase-to-phase voltages</td><td>Voltage profile</td></tr>
+      <tr><td>Rated demand</td><td>&mdash;</td><td>kW</td><td>Estimated normal draw for a point</td><td>Basis of all limits</td></tr>
+      <tr><td>SCADA</td><td>Supervisory Control and Data Acquisition</td><td>&mdash;</td><td>Industrial monitoring system</td><td>The intended data source</td></tr>
+      <tr><td>SLD</td><td>Single-line diagram</td><td>&mdash;</td><td>Standard network drawing</td><td>Overview</td></tr>
+      <tr><td>SSE</td><td>Server-sent events</td><td>&mdash;</td><td>Server pushes updates as they happen</td><td>Primary transport</td></tr>
+      <tr><td>Substation</td><td>&mdash;</td><td>&mdash;</td><td>Where voltage is stepped down</td><td>SLD, distribution, Power Flow</td></tr>
+      <tr><td>Transformer</td><td>&mdash;</td><td>kVA</td><td>Changes voltage high to low</td><td>Transformers screen</td></tr>
+      <tr><td>Typical</td><td>&mdash;</td><td>kW</td><td>Normal draw for this hour</td><td>Every reading's reference</td></tr>
+      <tr><td>VCB</td><td>Vacuum circuit breaker</td><td>kV</td><td>Automatic protective switch</td><td>Switchgear, SLD</td></tr>
+      <tr><td>Voltage</td><td>&mdash;</td><td>V / kV</td><td>Electrical pressure</td><td>KPI, voltage profile</td></tr>
+      <tr><td>Warning limit</td><td>&mdash;</td><td>kW</td><td>Early-notice threshold</td><td>Detail panel, alarm engine</td></tr>
+    </tbody>
+  </table>
+  <p class="tbl-cap"><b>Table 22.1</b> &mdash; Consolidated glossary, alphabetical.</p>
+
+  <h3>22.3 Conclusion</h3>
+  <p>Power Monitor is a complete and technically sound monitoring application. Its twelve screens
+  cover situational awareness, per-location detail, supply quality, network structure, energy
+  analysis, generation performance, asset inventory, exception handling, reporting and forecasting.
+  The alarm engine follows recognised industrial practice, with on-delay, hysteresis, latching,
+  acknowledgement, ringback and anti-flood re-arm implemented and covered by automated tests.</p>
+
+  <p>Its architecture is deliberately minimal &mdash; no framework, no charting library, no
+  database, no runtime dependencies &mdash; which makes it deployable by copying a folder onto an
+  isolated network, and gives it a single well-defined integration seam at
+  <code>src/source.js</code>.</p>
+
+  <p>Its principal limitation is not one of engineering but of input data. The source register is an
+  asset inventory containing no measurements, so every live value is simulated and every alarm
+  threshold rests on an estimated rating. The implementation handles this honestly: provenance is
+  marked at the point of use, documentary discrepancies are displayed rather than hidden, and the
+  forecast discloses its own method. That candour is the report's basis for judging the system
+  ready for connection to real telemetry.</p>
+
+  <p>To move from prototype to operational service, three things are required: real metering data
+  in place of the simulated feed; real nameplate ratings in place of the estimated ones, so the
+  limits become defensible; and a historian, without which no record survives a page reload and no
+  trained forecast is possible.</p>
+
+  <div class="callout">
+    <div class="callout-title">Summary judgement</div>
+    <p>The application is production-quality in construction and prototype-quality in data. The gap
+    between the two is well documented within the system itself, and closing it is a data-acquisition
+    task rather than a software one.</p>
+  </div>
+</section>
+
+</body>
+</html>

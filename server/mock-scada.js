@@ -179,15 +179,36 @@ const server = http.createServer((req, res) => {
 
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
-    console.error(`\n  Port ${PORT} is already in use — something is still listening there.`);
-    console.error(`  Either stop it, or run on another port:\n`);
-    console.error(`      node server/mock-scada.js --port ${PORT + 1}\n`);
-    console.error(`  To find the process holding it:`);
+    console.error(`
+  Port ${PORT} is already in use.
+`);
+    console.error(`  Easiest fix - run on a different port:
+`);
+    console.error(`      node server/mock-scada.js --port ${PORT + 1}
+`);
+    console.error(`  Or free this one. Step 1, find the PID (the LAST column of the output):`);
     console.error(
       process.platform === 'win32'
-        ? `      netstat -ano | findstr :${PORT}      then: taskkill /F /PID <pid>\n`
-        : `      lsof -i :${PORT}                      then: kill <pid>\n`
+        ? `      netstat -ano | findstr :${PORT}
+`
+        : `      lsof -ti :${PORT}
+`
     );
+    console.error(`  Step 2, kill it using that number. For example if the PID were 1234:`);
+    console.error(
+      process.platform === 'win32'
+        ? `      taskkill /F /PID 1234        <-- substitute the real PID
+`
+        : `      kill -9 1234                 <-- substitute the real PID
+`
+    );
+    if (process.platform === 'win32') {
+      console.error(`  Or do both steps at once in PowerShell:`);
+      console.error(
+        `      Stop-Process -Id (Get-NetTCPConnection -LocalPort ${PORT} -State Listen).OwningProcess -Force
+`
+      );
+    }
     process.exit(1);
   }
   console.error(`\n  Server error: ${err.message}\n`);

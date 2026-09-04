@@ -1,0 +1,440 @@
+<!-- ============================================================= CHAPTER 15 -->
+<section class="chapter" id="ch15" data-title="Filters &amp; Controls" data-num="15">
+  <div class="ch-head">
+    <span class="ch-num">Chapter 15</span>
+    <h2>Filters &amp; Controls</h2>
+    <p class="ch-intro">Every interactive control in the interface: what it changes, why it
+    exists, and how it should be used.</p>
+  </div>
+
+  <h3>15.1 Data filters (Load Monitoring)</h3>
+  <table>
+    <thead><tr><th style="width:30mm">Control</th><th style="width:22mm">Type</th><th>Behaviour</th></tr></thead>
+    <tbody>
+      <tr><td>Search</td><td>Free text</td><td>Case-insensitive substring match across tag, asset name and location. Typing "tube" returns all 14 tube wells; "MR-III" returns everything at that location regardless of asset type. Affects the point table only.<span class="pv pv-impl">IMPL</span></td></tr>
+      <tr><td>Group filter</td><td>Dropdown</td><td>Restricts the table to one of the nine asset groups. Kept in sync with the group cards: clicking a card sets this dropdown.</td></tr>
+      <tr><td>Substation filter</td><td>Dropdown</td><td>Restricts to points fed by one substation. Useful when a substation-level problem is suspected and the affected loads must be identified.</td></tr>
+      <tr><td>Only points needing attention</td><td>Toggle</td><td>Hides everything whose severity is Normal and whose quality is good. Reduces 110 rows to only those in warning, over limit, offline or bad-quality state. Re-evaluated continuously, so a point entering alarm appears without interaction.<span class="pv pv-impl">IMPL</span></td></tr>
+      <tr><td>Result count</td><td>Readout</td><td>Live "<em>n</em> of 110 points" so the effect of the active filter combination is always visible.</td></tr>
+    </tbody>
+  </table>
+  <p class="tbl-cap"><b>Table 15.1</b> &mdash; Data filters. All four combine with AND logic.<span class="pv pv-impl">IMPL</span></p>
+
+  <div class="callout">
+    <div class="callout-title">What these filters do not do</div>
+    <p>There is <strong>no date filter and no time-range selector</strong> anywhere in the
+    dashboard. All views are live plus session history held in memory. Historical range selection
+    would require a historian, which the implementation does not have. This is a genuine functional
+    limitation, not an omission from this report.<span class="pv pv-impl">IMPL</span></p>
+  </div>
+
+  <h3>15.2 Table sorting</h3>
+  <p>Every column heading in the point table is a sort control. First click sorts descending for
+  numeric columns and ascending for text; a second click reverses. The active column is marked with
+  an arrow and <code>aria-sort</code> for assistive technology.<span class="pv pv-impl">IMPL</span></p>
+  <p>Default sort is by severity descending, so the worst condition is always at the top on arrival.
+  Automatic re-sorting is suspended while the pointer or keyboard focus is inside the table, so rows
+  never move while being read.</p>
+
+  <h3>15.3 Navigation controls</h3>
+  <table>
+    <thead><tr><th style="width:34mm">Control</th><th>Behaviour</th></tr></thead>
+    <tbody>
+      <tr><td>Sidebar items</td><td>Switch the displayed screen. Only the visible screen renders; the choice is remembered in <code>localStorage</code> and restored on the next visit.<span class="pv pv-impl">IMPL</span></td></tr>
+      <tr><td>Alarm bell</td><td>Jumps directly to Alarms &amp; Events. Carries a badge with the unacknowledged count.</td></tr>
+      <tr><td>Group cards</td><td>Act as filters: select a group and scroll to the table. Clicking the selected card clears the filter without scrolling.</td></tr>
+      <tr><td>Table rows</td><td>Open the point detail panel. Keyboard-reachable; Enter or Space opens, Escape closes.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>15.4 Data-source and feed controls</h3>
+  <table>
+    <thead><tr><th style="width:30mm">Control</th><th>Behaviour</th></tr></thead>
+    <tbody>
+      <tr><td>Source selector</td><td>Switches between <em>Simulator</em> (in-browser generation), <em>SCADA stream (SSE)</em> and <em>SCADA poll (REST)</em> at runtime without reload. This is the control that moves the dashboard onto real data.<span class="pv pv-impl">IMPL</span></td></tr>
+      <tr><td>Pause / resume</td><td>Stops the feed so a value can be read or discussed without moving. The connection pill changes to <em>Paused</em> so a paused dashboard is never mistaken for a live one.</td></tr>
+      <tr><td>Acknowledge</td><td>Per-alarm button recording that an operator has seen the condition. The timestamp enters the alarm log.</td></tr>
+      <tr><td>Acknowledge all</td><td>Acknowledges every open alarm in one action. Disabled when nothing is unacknowledged.</td></tr>
+      <tr><td>CSV export</td><td>Two buttons on Reports generating point and alarm exports client-side; no server round trip.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>15.5 Display controls</h3>
+  <table>
+    <thead><tr><th style="width:30mm">Control</th><th>Behaviour</th></tr></thead>
+    <tbody>
+      <tr><td>Theme toggle</td><td>Switches light and dark palettes, each a separately chosen set of colour steps rather than an inversion. Persisted.<span class="pv pv-impl">IMPL</span></td></tr>
+      <tr><td>Display density (A)</td><td>Increases the root font size from 15 px to 18 px and widens spacing, for a wall-mounted screen read from a distance. Persisted.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================================================= CHAPTER 16 -->
+<section class="chapter" id="ch16" data-title="KPI &amp; Metrics Reference" data-num="16">
+  <div class="ch-head">
+    <span class="ch-num">Chapter 16</span>
+    <h2>KPI &amp; Metrics Reference</h2>
+    <p class="ch-intro">The six headline KPIs documented in full, followed by a complete reference
+    table covering every remaining metric in the interface.</p>
+  </div>
+
+  <h3>16.1 The six headline KPIs</h3>
+
+  <div class="metric">
+    <h4>Total Active Power</h4>
+    <dl class="kv">
+      <dt>Definition</dt><dd>The rate at which the site is consuming useful electrical energy at this instant.</dd>
+      <dt>Simple</dt><dd>How fast the whole site is using electricity right now &mdash; the speedometer, not the odometer.</dd>
+      <dt>Technical</dt><dd>Real power: the component of supplied power performing actual work, as opposed to reactive power which circulates without doing work.</dd>
+      <dt>Unit</dt><dd>MW on the tile; kW in the sub-line. 1 MW = 1,000 kW.</dd>
+      <dt>Purpose</dt><dd>The single most important operational number &mdash; the basis of capacity and cost.</dd>
+      <dt>Why included</dt><dd>Every other consumption figure is a subdivision of this one.</dd>
+      <dt>Data source</dt><dd>Sum of smoothed readings across all monitored non-generation points.<span class="pv pv-impl">IMPL</span></dd>
+      <dt>Calculation</dt><dd><code>site.kw = &Sigma; smoothed kW of all load points</code></dd>
+      <dt>Example</dt><dd>4,526 kW displays as 4.53 MW.</dd>
+      <dt>Interpretation</dt><dd>Typical 3,000&ndash;5,500 kW depending on hour. Judge against <em>typical for this hour</em>, not against a fixed threshold &mdash; 4,500 kW is normal at 20:00 and abnormal at 04:00.</dd>
+      <dt>Relationships</dt><dd>Integrated over time gives Energy. Divided by voltage and power factor gives Current. Combined with reactive power gives apparent power.</dd>
+    </dl>
+  </div>
+
+  <div class="metric">
+    <h4>Reactive Power</h4>
+    <dl class="kv">
+      <dt>Definition</dt><dd>Power that oscillates between source and load without performing net work.</dd>
+      <dt>Simple</dt><dd>Electricity that sloshes back and forth. Motors and transformers need it to build magnetic fields, but it does no useful work and still occupies cable capacity.</dd>
+      <dt>Technical</dt><dd>The imaginary component of complex power, arising from the phase displacement between voltage and current in inductive loads.</dd>
+      <dt>Unit</dt><dd>MVAR on the tile (megavolt-ampere reactive); kVAr per substation.</dd>
+      <dt>Purpose</dt><dd>High reactive power means cables and transformers carry current that produces nothing, and utilities commonly penalise it.</dd>
+      <dt>Data source</dt><dd>Derived from real power and power factor per substation, then summed.<span class="pv pv-impl">IMPL</span></dd>
+      <dt>Calculation</dt><dd><code>Q = P &times; tan(arccos(PF))</code> per substation; site total is the sum.</dd>
+      <dt>Example</dt><dd>P = 3,319 kW at PF 0.95 gives Q = 3,319 &times; tan(arccos 0.95) = 1,091 kVAr.</dd>
+      <dt>Interpretation</dt><dd>Rises as power factor falls. Typically 25&ndash;35% of real power on a motor-heavy site. A sharp rise with no corresponding rise in real power indicates increased inductive load or failing power-factor correction.</dd>
+      <dt>Relationships</dt><dd>Directly determined by power factor; combines with real power to give apparent power.</dd>
+    </dl>
+  </div>
+
+  <div class="metric">
+    <h4>Power Factor</h4>
+    <dl class="kv">
+      <dt>Definition</dt><dd>The ratio of real power to apparent power &mdash; how efficiently supplied power is converted into useful work.</dd>
+      <dt>Simple</dt><dd>A score from 0 to 1. 1.0 means every unit supplied does useful work. 0.8 means a fifth of the capacity is wasted moving reactive power around.</dd>
+      <dt>Technical</dt><dd>The cosine of the phase angle between voltage and current waveforms.</dd>
+      <dt>Unit</dt><dd>Dimensionless, 0 to 1. Displayed to three decimal places.</dd>
+      <dt>Purpose</dt><dd>Improving power factor is frequently the cheapest available saving on an industrial site.</dd>
+      <dt>Data source</dt><dd>Computed site-wide from real and apparent power.<span class="pv pv-impl">IMPL</span></dd>
+      <dt>Calculation</dt><dd><code>PF = P &divide; S</code> where <code>S = &radic;(P&sup2; + Q&sup2;)</code></dd>
+      <dt>Example</dt><dd>P = 4,526 kW, Q = 1,420 kVAr gives S = 4,744 kVA and PF = 0.954.</dd>
+      <dt>Interpretation</dt><dd><b>Above 0.95</b> good. <b>0.90&ndash;0.95</b> acceptable. <b>Below 0.90</b> usually attracts a penalty and the tile shows a warning. Falls as motor load rises &mdash; a normal daily variation, not a fault.</dd>
+      <dt>Relationships</dt><dd>Governs reactive power and current. For the same real power, a lower power factor means more current and higher losses.</dd>
+    </dl>
+  </div>
+
+  <div class="metric">
+    <h4>Frequency</h4>
+    <dl class="kv">
+      <dt>Definition</dt><dd>The rate at which alternating current reverses direction.</dd>
+      <dt>Simple</dt><dd>How many times per second the electricity changes direction. It must stay very close to 50 &mdash; it is a live indicator of whether national generation is keeping up with national demand.</dd>
+      <dt>Technical</dt><dd>The fundamental frequency of the supply waveform, determined by the rotational speed of synchronous generators across the interconnected grid.</dd>
+      <dt>Unit</dt><dd>Hz (hertz), two decimal places.</dd>
+      <dt>Purpose</dt><dd>Sensitive equipment and motor speeds depend on it; sustained excursion signals grid instability.</dd>
+      <dt>Data source</dt><dd>Modelled as a slow wander about 50 Hz, identical at every bus because frequency is a system-wide quantity.<span class="pv pv-impl">IMPL</span></dd>
+      <dt>Calculation</dt><dd><code>f = clamp(50 + 0.045&middot;sin(&phi;) + noise, 49.7, 50.3)</code></dd>
+      <dt>Interpretation</dt><dd>Statutory band 49.5&ndash;50.5 Hz. <b>Below 49.5</b> means demand exceeds generation nationally; <b>above 50.5</b> the reverse. A site cannot influence this, only respond to it.<span class="pv pv-dom">DOMAIN</span></dd>
+      <dt>Relationships</dt><dd>Independent of site load. Unlike every other KPI, it reports on the grid rather than on the site.</dd>
+    </dl>
+  </div>
+
+  <div class="metric">
+    <h4>Average Voltage (L-L)</h4>
+    <dl class="kv">
+      <dt>Definition</dt><dd>Mean line-to-line voltage across the three substations.</dd>
+      <dt>Simple</dt><dd>The electrical "pressure" pushing current through the wires. Too low and motors overheat; too high and insulation degrades.</dd>
+      <dt>Technical</dt><dd>RMS potential difference between any two of the three phase conductors, averaged across the phases and then across the substations.</dd>
+      <dt>Unit</dt><dd>kV (kilovolts), two decimal places. Nominal 11 kV.</dd>
+      <dt>Purpose</dt><dd>Out-of-band voltage shortens equipment life without ever causing an outage.</dd>
+      <dt>Data source</dt><dd>Derived per bus with a load-dependent droop and a small independent per-phase offset, then averaged.<span class="pv pv-impl">IMPL</span></dd>
+      <dt>Calculation</dt><dd><code>V<sub>phase</sub> = 11 &times; (1 &minus; loading&times;0.028 + imbalance + noise)</code></dd>
+      <dt>Example</dt><dd>Phases at 10.962, 10.905 and 10.875 kV average to 10.91 kV &mdash; within band.</dd>
+      <dt>Interpretation</dt><dd>Band 10.5&ndash;11.5 kV (&plusmn;4.5%). Voltage falling as load rises is normal droop. Voltage below band at high load indicates an undersized or overloaded supply path.</dd>
+      <dt>Relationships</dt><dd>Falls as loading rises; determines current for a given power; underpins the phase-imbalance calculation.</dd>
+    </dl>
+  </div>
+
+  <div class="metric">
+    <h4>Energy Today</h4>
+    <dl class="kv">
+      <dt>Definition</dt><dd>Total electrical energy consumed since monitoring began.</dd>
+      <dt>Simple</dt><dd>The odometer to Total Active Power's speedometer. This is what an electricity bill charges for.</dd>
+      <dt>Technical</dt><dd>The time integral of real power over the measurement period.</dd>
+      <dt>Unit</dt><dd>kWh below 1,000, MWh above. 1 MWh = 1,000 kWh.</dd>
+      <dt>Purpose</dt><dd>The billing quantity and the basis of any consumption-reduction target.</dd>
+      <dt>Data source</dt><dd>Accumulated on every ingest from smoothed power and elapsed time.<span class="pv pv-impl">IMPL</span></dd>
+      <dt>Calculation</dt><dd><code>E += P &times; &Delta;t &divide; 3,600,000</code> with &Delta;t in milliseconds, rejecting gaps over 60 s.</dd>
+      <dt>Example</dt><dd>4,500 kW sustained for 2 seconds adds 4,500 &times; 2,000 &divide; 3,600,000 = 2.5 kWh.</dd>
+      <dt>Interpretation</dt><dd>Monotonically increasing. Its <em>rate</em> of increase is average demand. Judge against the expected-for-elapsed reference on the gauge, not in isolation.</dd>
+      <dt>Relationships</dt><dd>Power &times; time. Divided by elapsed hours gives average demand; with peak demand gives load factor; with the emission factor gives CO&#8322;.</dd>
+    </dl>
+  </div>
+
+  <h3>16.2 Complete metrics reference</h3>
+  <table>
+    <thead><tr><th style="width:32mm">Metric</th><th style="width:13mm">Unit</th><th style="width:46mm">Calculation</th><th>Interpretation</th></tr></thead>
+    <tbody>
+      <tr><td>Apparent power</td><td>kVA / MVA</td><td>S = &radic;(P&sup2; + Q&sup2;)</td><td>Total the cables must carry. Why transformers are rated in kVA.</td></tr>
+      <tr><td>Line current</td><td>A</td><td>I = (P&times;1000) &divide; (&radic;3 &times; V&times;1000 &times; PF)</td><td>Cables are sized by current. Rises if PF or voltage falls at constant power.</td></tr>
+      <tr><td>Peak / max demand</td><td>kW / MW</td><td>Running maximum of site demand, with timestamp</td><td>Often the basis of a utility demand charge.</td></tr>
+      <tr><td>Average demand</td><td>kW</td><td>Energy &divide; elapsed hours</td><td>Mean power over the period.</td></tr>
+      <tr><td>Load factor</td><td>%</td><td>(Average &divide; peak) &times; 100</td><td>High = steady, efficient. Low = paying for capacity used briefly.</td></tr>
+      <tr><td>Distribution losses</td><td>kWh</td><td>&Sigma; P &times; &Delta;t &times; lossFraction</td><td>Energy lost as heat in cables and transformers. Paid for, never used.</td></tr>
+      <tr><td>System efficiency</td><td>%</td><td>(1 &minus; lossFraction) &times; 100</td><td>Share of intake reaching the load. Falls slightly as demand rises.</td></tr>
+      <tr><td>Loss fraction</td><td>&mdash;</td><td>0.018 + 0.012 &times; clamp(P&divide;8000, 0, 1)</td><td>1.8% at low load rising to 3.0% at high load.</td></tr>
+      <tr><td>CO&#8322; avoided</td><td>t</td><td>Solar kWh &times; 0.42 kg/kWh</td><td>Emissions displaced by self-generation.</td></tr>
+      <tr><td>Connected capacity</td><td>MW</td><td>&Sigma; (installed kVA &times; 0.9)</td><td>Network ceiling. <b>REG</b>-derived.</td></tr>
+      <tr><td>Substation loading</td><td>%</td><td>(Load &divide; capacity) &times; 100</td><td>20&ndash;55% typical. Amber &gt; 80%, red &gt; 90%.</td></tr>
+      <tr><td>Phase imbalance</td><td>%</td><td>max&#124;V<sub>ph</sub> &minus; V<sub>avg</sub>&#124; &divide; V<sub>avg</sub> &times; 100</td><td>Below 2% acceptable. Sustained excess destroys motors.</td></tr>
+      <tr><td>Typical for this hour</td><td>kW</td><td>Rated kW &times; profileFactor(profile, hour)</td><td>The reference that makes a raw reading meaningful.</td></tr>
+      <tr><td>vs typical</td><td>%</td><td>(Now &divide; typical) &minus; 1</td><td>Large sustained positive deviation is the investigation trigger.</td></tr>
+      <tr><td>% of limit</td><td>%</td><td>(Now &divide; alarm limit) &times; 100</td><td>Proximity to alarm. The most scannable column in the table.</td></tr>
+      <tr><td>Rated demand</td><td>kW</td><td>Unit count &times; estimated unit kW</td><td><b>Estimated.</b> Every limit derives from it.</td></tr>
+      <tr><td>Warning limit</td><td>kW</td><td>Rated + (alarm &minus; rated) &times; 0.55</td><td>Early notice, set between rated and alarm.</td></tr>
+      <tr><td>Alarm limit</td><td>kW</td><td>Rated &times; group headroom (1.15&ndash;1.40)</td><td>The consumption limit proper.</td></tr>
+      <tr><td>Performance ratio</td><td>%</td><td>(Solar output &divide; expected) &times; 100</td><td>Distinguishes a dawn array from a failed one.</td></tr>
+      <tr><td>Headroom at peak</td><td>%</td><td>(Capacity &minus; forecast peak) &divide; capacity &times; 100</td><td>Whether new load can be connected.</td></tr>
+      <tr><td>Forecast confidence</td><td>kW</td><td>v &times; (1 &plusmn; (0.06 + horizon&times;0.14))</td><td>&plusmn;6% now widening to &plusmn;20% at 22 h.</td></tr>
+      <tr><td>Alarm rate context</td><td>count</td><td>Open episodes; unacknowledged count</td><td>Drives the nav badge and bell.</td></tr>
+    </tbody>
+  </table>
+  <p class="tbl-cap"><b>Table 16.1</b> &mdash; Complete metrics reference. All formulas verified
+  against the implementation.<span class="pv pv-impl">IMPL</span></p>
+</section>
+
+<!-- ============================================================= CHAPTER 17 -->
+<section class="chapter" id="ch17" data-title="Technical Terminology" data-num="17">
+  <div class="ch-head">
+    <span class="ch-num">Chapter 17</span>
+    <h2>Technical Terminology</h2>
+    <p class="ch-intro">The terms and abbreviations appearing in the interface, each explained
+    first in plain language and then technically. Only terms actually present in the dashboard
+    are included.</p>
+  </div>
+
+  <h3>17.1 Power and energy terms</h3>
+
+  <h4>kW &mdash; kilowatt</h4>
+  <p><b>Simple:</b> a measure of how fast electricity is being used. A domestic kettle draws about
+  2 kW. <b>Technical:</b> one thousand watts; the SI unit of power, being energy transfer per unit
+  time. <b>Unit of:</b> power. <b>Measured:</b> in this implementation, reported per point by the
+  feed and summed. <b>Why it matters:</b> it is the fundamental quantity every consumption figure
+  is built from. <b>Interpretation:</b> a rate, not a quantity &mdash; meaningful only at an
+  instant. <b>Example:</b> a tube well pump drawing 15 kW.</p>
+
+  <h4>MW &mdash; megawatt</h4>
+  <p><b>Simple:</b> one million watts, used because site totals in kW become unwieldy.
+  <b>Technical:</b> 1 MW = 1,000 kW. <b>Why it appears:</b> the KPI tiles display site totals in MW
+  for legibility while retaining kW in the sub-line. <b>Example:</b> 4,526 kW shown as 4.53 MW.</p>
+
+  <h4>kWh &mdash; kilowatt-hour</h4>
+  <p><b>Simple:</b> the amount of electricity used, as opposed to how fast. One kilowatt sustained
+  for one hour. <b>Technical:</b> a unit of energy equal to 3.6 megajoules. <b>Formula:</b>
+  E (kWh) = P (kW) &times; t (h). <b>Why it matters:</b> this is the billing unit.
+  <b>Interpretation:</b> always increasing; its rate of increase is average power. <b>Example:</b>
+  a 10 kW pump running 5 hours consumes 50 kWh.</p>
+
+  <h4>MWh &mdash; megawatt-hour</h4>
+  <p>1,000 kWh. The dashboard switches automatically from kWh to MWh above 1,000 kWh to keep the
+  displayed figure readable.<span class="pv pv-impl">IMPL</span></p>
+
+  <h4>kVA and MVA &mdash; kilovolt-ampere</h4>
+  <p><b>Simple:</b> the total electrical load a cable or transformer must physically carry,
+  including the part that does no useful work. <b>Technical:</b> apparent power, the vector sum of
+  real and reactive power. <b>Formula:</b> S = &radic;(P&sup2; + Q&sup2;). <b>Why it appears:</b>
+  transformers are rated in kVA, so all capacity figures in the register are in kVA.
+  <b>Example:</b> the site's 109 transformers total 18,530 kVA.</p>
+
+  <h4>kVAr and MVAR &mdash; reactive volt-ampere</h4>
+  <p><b>Simple:</b> the portion of power that does no work but is still required by motors and
+  transformers. <b>Technical:</b> the imaginary component of complex power.
+  <b>Formula:</b> Q = P &times; tan(arccos PF). <b>Interpretation:</b> the lower the power factor,
+  the higher this is for the same useful output.</p>
+
+  <h3>17.2 Supply quality terms</h3>
+
+  <h4>V, kV &mdash; volt, kilovolt</h4>
+  <p><b>Simple:</b> electrical pressure. <b>Technical:</b> potential difference. <b>In this
+  system:</b> 11 kV high-tension distribution &mdash; evidenced by the register's "VCBs HT 11 KV"
+  entry &mdash; stepped down to 400 V for buildings.<span class="pv pv-impl">IMPL</span></p>
+
+  <h4>L-L &mdash; line-to-line</h4>
+  <p>Voltage measured between two phase conductors rather than between one phase and earth. The
+  standard way to quote three-phase voltage, which is why the dashboard labels its voltage figures
+  "L-L".</p>
+
+  <h4>A &mdash; ampere</h4>
+  <p><b>Simple:</b> how much electricity is flowing. <b>Technical:</b> the SI unit of current.
+  <b>Formula used:</b> I = P &divide; (&radic;3 &middot; V &middot; PF) for a three-phase system.
+  <b>Why it matters:</b> cables are sized by current; exceeding their rating overheats them.</p>
+
+  <h4>Hz &mdash; hertz</h4>
+  <p><b>Simple:</b> cycles per second. <b>Technical:</b> the supply's fundamental frequency,
+  nominally 50 Hz in this region. <b>Interpretation:</b> a grid-level quantity that a site
+  observes rather than controls.</p>
+
+  <h4>PF &mdash; power factor</h4>
+  <p>Covered fully in Chapter 16. In brief: the ratio of useful power to total supplied power,
+  between 0 and 1.</p>
+
+  <h4>R-Y, Y-B, B-R &mdash; phase pairs</h4>
+  <p><b>Simple:</b> industrial supply uses three live conductors, coloured Red, Yellow and Blue.
+  These three labels are the three possible pairings between them. <b>Technical:</b> the three
+  line-to-line voltage measurements of a three-phase system. <b>Why they appear:</b> the voltage
+  profile plots all three so imbalance between them is visible.</p>
+
+  <h4>Phase imbalance</h4>
+  <p><b>Simple:</b> the three phases carrying noticeably different loads. <b>Formula:</b> maximum
+  phase deviation from the mean, divided by the mean. <b>Why it matters:</b> sustained imbalance
+  overheats and destroys three-phase motors. <b>Interpretation:</b> below 2% acceptable.</p>
+
+  <h3>17.3 Network terms</h3>
+
+  <h4>HT / LT &mdash; high tension / low tension</h4>
+  <p>High-voltage distribution (11 kV here) and low-voltage final distribution (400 V). Electricity
+  travels at high voltage because losses fall as voltage rises for the same power. The register
+  records 38 km of HT and 108 km of LT cable.<span class="pv pv-impl">IMPL</span></p>
+
+  <h4>Substation</h4>
+  <p>Where high voltage is received and stepped down for local distribution. Three exist:
+  PNS Hafeez, ARC and NHQ, plus 13 satellite stations serving outstations.</p>
+
+  <h4>Transformer</h4>
+  <p><b>Simple:</b> the device that changes voltage from high to low. <b>Technical:</b> a static
+  machine coupling two windings by a magnetic field. <b>Rated in:</b> kVA. <b>Example:</b> a
+  200 kVA unit carries roughly 180 kW of real load at 0.9 power factor.</p>
+
+  <h4>Feeder</h4>
+  <p>A cable circuit carrying power from a substation to a group of loads. The register states
+  three feeders; the dashboard models one per substation.</p>
+
+  <h4>Busbar</h4>
+  <p>The heavy conductor inside a substation to which everything connects &mdash; the common
+  junction between incoming supply and outgoing feeders. Drawn as the horizontal line on the
+  single-line diagram.</p>
+
+  <h4>VCB &mdash; vacuum circuit breaker</h4>
+  <p><b>Simple:</b> an automatic switch that disconnects a circuit when something goes wrong.
+  <b>Technical:</b> a breaker interrupting current within a vacuum chamber, which extinguishes the
+  arc cleanly; standard at medium voltage. <b>In this system:</b> eight units at 11 kV across four
+  register-named sites.<span class="pv pv-impl">IMPL</span></p>
+
+  <h4>DB &mdash; distribution board</h4>
+  <p>The panel of protective devices inside a building splitting incoming supply into final
+  circuits &mdash; a domestic consumer unit, scaled up. The register records 475 with no further
+  detail.</p>
+
+  <h4>SLD &mdash; single-line diagram</h4>
+  <p>The standard engineering drawing of an electrical network, representing each three-phase
+  circuit as one line. Universally read by electrical engineers, which is why the dashboard uses
+  this form rather than a generic chart.</p>
+
+  <h4>Solar PV / kWp</h4>
+  <p>Photovoltaic panels generating electricity from sunlight. <b>kWp</b> is "kilowatt peak" &mdash;
+  output under full reference sun. The register states 13 systems but gives no
+  ratings.<span class="pv pv-impl">IMPL</span></p>
+
+  <h3>17.4 Load and capacity terms</h3>
+
+  <h4>Load</h4>
+  <p>Any device or group of devices consuming electricity; also the amount consumed. The dashboard
+  uses it in both senses &mdash; "load group" (the devices) and "site load" (the amount).</p>
+
+  <h4>Demand</h4>
+  <p>Power drawn at a given moment. Essentially interchangeable with load in this context.</p>
+
+  <h4>Peak demand</h4>
+  <p>The highest demand reached in a period. Commercially significant because utilities frequently
+  levy a charge based on it, independent of total energy.<span class="pv pv-dom">DOMAIN</span></p>
+
+  <h4>Connected load vs demand</h4>
+  <p><b>Connected load</b> is the total that could be switched on at once; <b>demand</b> is what is
+  actually drawn. Connected capacity here is 16.7 MW while typical demand is around 4.5 MW.</p>
+
+  <h4>Diversity</h4>
+  <p>The reason for that gap. Across 2,157 buildings, not everything runs simultaneously, so the
+  real total sits far below the theoretical maximum. This is why networks are not sized to
+  connected load.<span class="pv pv-dom">DOMAIN</span></p>
+
+  <h4>Capacity / firm capacity</h4>
+  <p>The load the network can carry safely and continuously, derived here from installed
+  transformer kVA at an assumed 0.9 power factor.</p>
+
+  <h4>Utilisation</h4>
+  <p>Load as a percentage of capacity. Distribution transformers typically run at 30&ndash;60%.</p>
+
+  <h4>Load profile</h4>
+  <p>The characteristic shape of demand across a day. Residential load peaks in the evening; office
+  load at midday; street lighting runs only at night. Each asset group in the register carries its
+  own profile.<span class="pv pv-impl">IMPL</span></p>
+
+  <h4>Generation</h4>
+  <p>Electricity produced on site rather than imported. Here this means solar only &mdash; the
+  register records no generators of any kind.<span class="pv pv-impl">IMPL</span></p>
+
+  <h3>17.5 Monitoring and alarm terms</h3>
+
+  <h4>SCADA</h4>
+  <p><b>Full form:</b> Supervisory Control and Data Acquisition. <b>Simple:</b> the standard family
+  of industrial systems that collect readings from field equipment and present them centrally.
+  <b>In this system:</b> the dashboard is designed to sit on top of one; the reference server
+  emulates its data interface.</p>
+
+  <h4>Tag / Point ID</h4>
+  <p>The unique code identifying one monitored location, such as <code>TW-01</code> or
+  <code>MED-HOSP</code>. Everything keys off it: readings, limits, alarms and history.</p>
+
+  <h4>Telemetry</h4>
+  <p>Measurements transmitted automatically from remote equipment, as opposed to manual reading.</p>
+
+  <h4>SSE &mdash; server-sent events</h4>
+  <p>A one-way streaming protocol over HTTP in which the server pushes updates as they occur. Used
+  in preference to polling because it is lower-latency and lighter on both ends.</p>
+
+  <h4>REST polling</h4>
+  <p>The alternative: the client requests the current readings on a fixed interval. Simpler for a
+  gateway to implement, at the cost of latency.</p>
+
+  <h4>EMA &mdash; exponential moving average</h4>
+  <p><b>Simple:</b> a smoothing method weighting recent readings more heavily than older ones.
+  <b>Formula:</b> &alpha; = 1 &minus; e<sup>&minus;&Delta;t/&tau;</sup>, then
+  value = previous + &alpha;(new &minus; previous), with &tau; = 6 s.
+  <b>Why it matters:</b> raw sensor jitter would otherwise read as plant
+  instability.<span class="pv pv-impl">IMPL</span></p>
+
+  <h4>Data quality states</h4>
+  <p>Deliberately a separate axis from severity. <b>Good</b> &mdash; fresh sample. <b>Pending</b>
+  &mdash; not heard from yet at start-up, explicitly not an alarm. <b>Stale</b> &mdash; over 15 s
+  old. <b>Offline</b> &mdash; over 40 s old; raises a communications alarm. <b>Bad</b> &mdash; the
+  meter reported bad quality, and limits are not evaluated on
+  it.<span class="pv pv-impl">IMPL</span></p>
+
+  <h4>Alarm handling terms</h4>
+  <table class="plain">
+    <thead><tr><th style="width:32mm">Term</th><th>Meaning in this implementation</th></tr></thead>
+    <tbody>
+      <tr><td>On-delay</td><td>A limit must be exceeded continuously for 6 s before an alarm raises, so a single noisy sample cannot trip it.</td></tr>
+      <tr><td>Hysteresis / deadband</td><td>To clear, a value must fall 4% below the limit &mdash; not merely back to it. Prevents endless alarm/clear chatter at the threshold.</td></tr>
+      <tr><td>Off-delay</td><td>It must also remain clear for 12 s before the alarm is considered over.</td></tr>
+      <tr><td>Latching</td><td>An alarm persists until acknowledged, even if the condition resolves itself.</td></tr>
+      <tr><td>Acknowledge</td><td>An operator confirming they have seen it; the timestamp is recorded.</td></tr>
+      <tr><td>Ringback</td><td>An alarm that cleared before acknowledgement remains listed, marked cleared, so intermittent faults are not missed.</td></tr>
+      <tr><td>Escalation</td><td>An open alarm worsening updates the same episode rather than raising a second, and cancels any prior acknowledgement.</td></tr>
+      <tr><td>Re-arm</td><td>After an episode closes, the same point cannot re-raise at the same severity for 90 s. The point still <em>displays</em> its true condition; only the new annunciation is held.</td></tr>
+      <tr><td>Alarm flood</td><td>The failure mode all of the above guards against &mdash; so many alarms at once that operators stop reading them. ISA-18.2 defines it as more than 10 in 10 minutes.</td></tr>
+      <tr><td>Episode</td><td>One complete alarm event from raised through acknowledged to cleared, recorded as a single entry with its peak value.</td></tr>
+    </tbody>
+  </table>
+  <p class="tbl-cap"><b>Table 17.1</b> &mdash; Alarm terminology and the implementation's actual
+  parameters.<span class="pv pv-impl">IMPL</span></p>
+
+  <h4>ISA-18.2 and ISA-101</h4>
+  <p>International standards for industrial alarm management and human-machine interface design
+  respectively. The alarm behaviour documented above follows ISA-18.2 practice.<span class="pv pv-dom">DOMAIN</span></p>
+</section>

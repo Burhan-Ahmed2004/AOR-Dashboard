@@ -130,7 +130,9 @@ select.ctl{background:var(--surface-2);color:var(--ink);border:1px solid var(--h
 .card-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:9px}
 .card-title{font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
 .card-sub{font-size:.68rem;color:var(--muted);font-weight:400;letter-spacing:0;text-transform:none}
-.link-btn{background:none;border:0;color:var(--cat-1);font-size:.7rem;cursor:pointer;padding:0}
+.link-btn{background:none;border:0;color:var(--cat-1);font-size:.7rem;cursor:pointer;
+  min-height:24px;display:inline-flex;align-items:center;padding:0 6px;margin:0 -6px}
+.link-btn:hover{text-decoration:underline}
 
 /* overview: main column + right rail, exactly like the reference */
 #view-overview{grid-template-columns:minmax(0,2.05fr) minmax(300px,1fr)}

@@ -1,0 +1,417 @@
+<!-- ============================================================= CHAPTER 10 -->
+<section class="chapter" id="ch10" data-title="Screen Analysis: Solar" data-num="10">
+  <div class="ch-head">
+    <span class="ch-num">Chapter 10</span>
+    <h2>Screen Analysis &mdash; Solar</h2>
+    <p class="ch-intro">The only screen concerned with electricity being produced rather than
+    consumed.</p>
+  </div>
+
+  <figure>
+    <img src="figures/fig-solar.png" alt="Solar screen">
+    <figcaption><b>Figure 10.1</b> &mdash; The Solar screen: stat tiles, fleet output gauge,
+    generation trend, and the per-array table.</figcaption>
+  </figure>
+
+  <h3>10.1 Purpose</h3>
+  <p>To report generation from the 13 solar systems and, critically, to judge that output against
+  what the current sun angle should produce rather than against a fixed target.</p>
+
+  <h3>10.2 Why this screen exists</h3>
+  <p>Solar output varies legitimately by an order of magnitude through the day. A raw output figure
+  therefore cannot distinguish a healthy array at dawn from a failed array at noon. Only a ratio
+  against expected output can, which is why this screen is built around performance ratio rather
+  than kW.<span class="pv pv-dom">DOMAIN</span></p>
+
+  <h3>10.3 Sections</h3>
+
+  <h4>10.3.1 Stat tiles</h4>
+  <figure>
+    <img src="figures/sec-solstats.png" alt="Solar stat tiles">
+    <figcaption><b>Figure 10.2</b> &mdash; Current output, installed capacity, performance ratio,
+    and session generation with CO&#8322; avoided. Note the installed-capacity caption records that
+    the register states 13 systems but gives no rating.</figcaption>
+  </figure>
+  <dl class="kv">
+    <dt>Performance ratio</dt><dd>Output &divide; expected &times; 100, computed only when expected exceeds 0.5 kW; below that the ratio is meaningless and an em-dash is shown.<span class="pv pv-impl">IMPL</span></dd>
+    <dt>CO&#8322; avoided</dt><dd>Session solar energy &times; 0.42 kg/kWh, reported in tonnes.<span class="pv pv-impl">IMPL</span></dd>
+  </dl>
+
+  <h4>10.3.2 Fleet output gauge</h4>
+  <figure>
+    <img src="figures/sec-solgauge.png" alt="Solar output gauge">
+    <figcaption><b>Figure 10.3</b> &mdash; Output against installed capacity. The tick mark on the
+    arc is expected output for the current sun angle; the caption states the installed total.</figcaption>
+  </figure>
+  <p>The gauge should normally read well below full scale &mdash; full scale is peak capacity in
+  ideal sun. The meaningful comparison is between the fill and the tick mark, not between the fill
+  and the end of the arc.</p>
+
+  <h4>10.3.3 Generation trend</h4>
+  <figure>
+    <img src="figures/sec-solchart.png" alt="Solar generation trend">
+    <figcaption><b>Figure 10.4</b> &mdash; Fleet output over time against expected output. The two
+    traces should track; a persistent gap indicates fleet-wide under-performance.</figcaption>
+  </figure>
+  <div class="callout callout--warn">
+    <div class="callout-title">Implementation note</div>
+    <p>The trend is derived by scaling one array's history by the number of arrays, rather than by
+    summing all thirteen histories. The shape is representative and the magnitude is correct in
+    aggregate, but it will not reflect divergence between individual arrays. Per-array divergence
+    is visible in the table beneath instead.<span class="pv pv-impl">IMPL</span></p>
+  </div>
+
+  <h4>10.3.4 Array table</h4>
+  <figure>
+    <img src="figures/sec-solarrays.png" alt="Per-array table">
+    <figcaption><b>Figure 10.5</b> &mdash; All thirteen arrays with output, expected, ratio,
+    session energy and status.</figcaption>
+  </figure>
+  <table>
+    <thead><tr><th style="width:24mm">Column</th><th style="width:14mm">Unit</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td>Tag / Array</td><td>&mdash;</td><td>SOL-01 to SOL-13 and the array name.</td></tr>
+      <tr><td>Output</td><td>kW</td><td>Current generation; em-dash when offline.</td></tr>
+      <tr><td>Expected</td><td>kW</td><td>Rated capacity &times; the solar profile factor for the current hour.</td></tr>
+      <tr><td>Ratio</td><td>%</td><td>Output &divide; expected. The diagnostic column.</td></tr>
+      <tr><td>Session</td><td>kWh</td><td>Energy generated since monitoring began.</td></tr>
+      <tr><td>Status</td><td>&mdash;</td><td>Normal, Low (below 60% of expected), Under-output (below 35%), or Offline.</td></tr>
+    </tbody>
+  </table>
+  <p class="tbl-cap"><b>Table 10.1</b> &mdash; Array table columns.<span class="pv pv-impl">IMPL</span></p>
+  <p>Under-output limits are evaluated only during daylight, defined as solar profile factor above
+  0.2. Outside that window the limits are suspended entirely, so no array alarms overnight for the
+  crime of darkness.<span class="pv pv-impl">IMPL</span></p>
+
+  <h3>10.4 Practical use case</h3>
+  <p>At midday the fleet reads 41 kW against 58 kW expected &mdash; a 71% performance ratio. The
+  array table shows twelve arrays near 95% and SOL-07 at 12%, flagged Under-output. The problem is
+  one array, not the fleet: shading, soiling or an inverter fault at that location.</p>
+</section>
+
+<!-- ============================================================= CHAPTER 11 -->
+<section class="chapter" id="ch11" data-title="Screen Analysis: Transformers" data-num="11">
+  <div class="ch-head">
+    <span class="ch-num">Chapter 11</span>
+    <h2>Screen Analysis &mdash; Transformers</h2>
+    <p class="ch-intro">The only screen containing no simulated values whatsoever.</p>
+  </div>
+
+  <figure>
+    <img src="figures/fig-transformers.png" alt="Transformers screen">
+    <figcaption><b>Figure 11.1</b> &mdash; The Transformers screen: fleet composition by unit
+    size, and allocation across the three substations.</figcaption>
+  </figure>
+
+  <h3>11.1 Purpose</h3>
+  <p>To document the transformer fleet: how many units of each rating exist, and how installed
+  capacity distributes across the substations.</p>
+
+  <h3>11.2 Why this screen exists</h3>
+  <p>Transformer capacity is the ceiling on everything else. Every loading percentage elsewhere on
+  the dashboard is computed against these figures, so they warrant their own screen. It is also
+  the screen to use when every displayed number must be defensible &mdash; nothing here is
+  modelled.<span class="pv pv-impl">IMPL</span></p>
+
+  <h3>11.3 Sections</h3>
+
+  <h4>11.3.1 Transformer fleet</h4>
+  <figure>
+    <img src="figures/sec-txfleet.png" alt="Transformer fleet composition">
+    <figcaption><b>Figure 11.2</b> &mdash; Fleet by unit rating. Satellite stations appear with
+    their count and an explicit note that the register gives no rating for them.</figcaption>
+  </figure>
+  <table>
+    <thead><tr><th style="width:26mm">Rating</th><th class="num" style="width:20mm">Units</th><th class="num" style="width:28mm">Total kVA</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td>1,250 kVA</td><td class="num">1</td><td class="num">1,250</td><td>Register</td></tr>
+      <tr><td>630 kVA</td><td class="num">1</td><td class="num">630</td><td>Register</td></tr>
+      <tr><td>200 kVA</td><td class="num">73</td><td class="num">14,600</td><td>Register</td></tr>
+      <tr><td>100 kVA</td><td class="num">20</td><td class="num">2,000</td><td>Register</td></tr>
+      <tr><td>50 kVA</td><td class="num">1</td><td class="num">50</td><td>Register</td></tr>
+      <tr><td>Satellite stations</td><td class="num">13</td><td class="num">not stated</td><td>Register (count only)</td></tr>
+      <tr><td><b>Total</b></td><td class="num"><b>109</b></td><td class="num"><b>18,530</b></td><td>Reconciles exactly</td></tr>
+    </tbody>
+  </table>
+  <p class="tbl-cap"><b>Table 11.1</b> &mdash; Transformer fleet. Both the unit count and the
+  installed kVA reconcile exactly to the totals stated in the source document; this is asserted by
+  the verification script on every run.<span class="pv pv-impl">IMPL</span></p>
+
+  <h4>11.3.2 Substation allocation</h4>
+  <figure>
+    <img src="figures/sec-txbysub.png" alt="Transformer allocation by substation">
+    <figcaption><b>Figure 11.3</b> &mdash; Installed kVA and usable kW per substation. The card
+    subtitle states that fleet totals are from the register while the split between substations is
+    assumed.</figcaption>
+  </figure>
+  <table>
+    <thead><tr><th style="width:34mm">Substation</th><th class="num">Units</th><th class="num">Installed kVA</th><th class="num">Usable kW</th><th class="num">Rated demand</th><th class="num">Utilisation</th></tr></thead>
+    <tbody>
+      <tr><td>PNS Hafeez</td><td class="num">66</td><td class="num">13,780</td><td class="num">12,402</td><td class="num">5,013</td><td class="num">40%</td></tr>
+      <tr><td>ARC</td><td class="num">19</td><td class="num">3,200</td><td class="num">2,880</td><td class="num">1,062</td><td class="num">37%</td></tr>
+      <tr><td>NHQ</td><td class="num">11</td><td class="num">1,550</td><td class="num">1,395</td><td class="num">741</td><td class="num">53%</td></tr>
+      <tr><td>Satellite</td><td class="num">13</td><td class="num">not stated</td><td class="num">&mdash;</td><td class="num">100</td><td class="num">&mdash;</td></tr>
+    </tbody>
+  </table>
+  <p class="tbl-cap"><b>Table 11.2</b> &mdash; Substation allocation. Usable kW = installed kVA
+  &times; 0.9 assumed power factor. Utilisation figures are typical distribution-transformer
+  loadings.<span class="pv pv-impl">IMPL</span></p>
+
+  <div class="callout callout--warn">
+    <div class="callout-title">Verified fact and stated assumption, side by side</div>
+    <p><strong>Verified:</strong> 109 units and 18,530 kVA are stated in the register and reconcile
+    exactly.<br>
+    <strong>Assumed:</strong> which units sit at which substation. The register does not say. The
+    allocation used was chosen so that each substation's utilisation lands in a realistic band, and
+    it still sums exactly to the documented fleet. It must be corrected from the site single-line
+    diagram before being relied upon.<span class="pv pv-impl">IMPL</span></p>
+  </div>
+</section>
+
+<!-- ============================================================= CHAPTER 12 -->
+<section class="chapter" id="ch12" data-title="Screen Analysis: Switchgear" data-num="12">
+  <div class="ch-head">
+    <span class="ch-num">Chapter 12</span>
+    <h2>Screen Analysis &mdash; Switchgear</h2>
+    <p class="ch-intro">The protective equipment between supply and load.</p>
+  </div>
+
+  <figure>
+    <img src="figures/fig-switchgear.png" alt="Switchgear screen">
+    <figcaption><b>Figure 12.1</b> &mdash; The Switchgear screen: stat tiles, the HT breaker
+    status grid, feeder loading, and the distribution-board summary.</figcaption>
+  </figure>
+
+  <h3>12.1 Purpose</h3>
+  <p>To show the state of the circuit breakers protecting the network, and to summarise the
+  distribution-board population.</p>
+
+  <h3>12.2 Why this screen exists</h3>
+  <p>Breaker position is the first thing an engineer checks when a section of a site loses supply.
+  A tripped breaker is both the symptom and the location of a fault.<span class="pv pv-dom">DOMAIN</span></p>
+
+  <h3>12.3 Sections</h3>
+
+  <h4>12.3.1 Stat tiles</h4>
+  <figure>
+    <img src="figures/sec-sgstats.png" alt="Switchgear stat tiles">
+    <figcaption><b>Figure 12.2</b> &mdash; VCB count with the four register-named sites, position
+    summary, feeder count, and distribution-board total. Three of the four carry <b>REG</b>
+    badges.</figcaption>
+  </figure>
+
+  <h4>12.3.2 HT breaker grid</h4>
+  <figure>
+    <img src="figures/sec-sgbreakers.png" alt="Breaker status grid">
+    <figcaption><b>Figure 12.3</b> &mdash; The eight 11 kV breakers, one card each, showing
+    identifier, site and role, position, rating and operation count.</figcaption>
+  </figure>
+  <table>
+    <thead><tr><th style="width:26mm">Position</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td>Closed</td><td>Normal operating state &mdash; the breaker is carrying power.</td></tr>
+      <tr><td>Standby</td><td>Deliberately open and healthy, available as a spare path.</td></tr>
+      <tr><td>Open</td><td>Open by intent, for example during maintenance.</td></tr>
+      <tr><td>Tripped</td><td>Opened automatically in response to a fault. Requires investigation.</td></tr>
+    </tbody>
+  </table>
+  <p class="tbl-cap"><b>Table 12.1</b> &mdash; Breaker positions.<span class="pv pv-impl">IMPL</span></p>
+  <div class="callout callout--warn">
+    <div class="callout-title">Provenance of this section</div>
+    <p>The register states <em>"VCBs HT 11 KV &mdash; 8 Nos &mdash; (TS Rawat, PNS Hafeez, ARC &amp;
+    OM)"</em>. The count and the four site names are therefore real. Splitting them into
+    incomer/bus-section pairs is an assumption, because the document names the sites without stating
+    what each breaker does. Positions are simulated entirely; the register records no breaker
+    state.<span class="pv pv-impl">IMPL</span></p>
+  </div>
+
+  <h4>12.3.3 Distribution boards</h4>
+  <figure>
+    <img src="figures/sec-sgdbs.png" alt="Distribution board summary">
+    <figcaption><b>Figure 12.4</b> &mdash; The 475 boards summarised by substation, each row
+    stating its basis, with the register total shown for reconciliation.</figcaption>
+  </figure>
+  <p>The boards are deliberately <strong>summarised rather than listed</strong>. The register gives
+  a total of 475 with no names, tags or locations; generating 475 individual board entries would
+  imply a level of detail the source document does not contain. The apportionment shown is by
+  installed kVA and each row says so.<span class="pv pv-impl">IMPL</span></p>
+
+  <h3>12.4 Practical use case</h3>
+  <p>A zone reports loss of supply. This screen shows VCB-03 (ARC incomer) reading Tripped with one
+  operation this session. The fault is localised immediately to the ARC incomer, and the operation
+  count distinguishes a single event from repeated tripping.</p>
+</section>
+
+<!-- ============================================================= CHAPTER 13 -->
+<section class="chapter" id="ch13" data-title="Screen Analysis: Alarms &amp; Events" data-num="13">
+  <div class="ch-head">
+    <span class="ch-num">Chapter 13</span>
+    <h2>Screen Analysis &mdash; Alarms &amp; Events</h2>
+    <p class="ch-intro">Everything currently wrong, and a permanent record of everything that has
+    been wrong.</p>
+  </div>
+
+  <figure>
+    <img src="figures/fig-alarms.png" alt="Alarms and Events screen">
+    <figcaption><b>Figure 13.1</b> &mdash; The Alarms &amp; Events screen: the full active list
+    above the complete alarm log.</figcaption>
+  </figure>
+
+  <h3>13.1 Purpose</h3>
+  <p>To hold the complete alarm state and history, with the timestamps needed to answer post-incident
+  questions.</p>
+
+  <h3>13.2 Why this screen exists</h3>
+  <p>The Overview shows active alarms but is space-constrained and holds no history. After any
+  incident the question asked is not "what is wrong now?" but "when did we know, and how quickly
+  did we respond?" &mdash; which requires a durable record.<span class="pv pv-int">INTERP</span></p>
+
+  <h3>13.3 Sections</h3>
+
+  <h4>13.3.1 Active alarms</h4>
+  <figure>
+    <img src="figures/sec-alarmactive.png" alt="Full active alarm list">
+    <figcaption><b>Figure 13.2</b> &mdash; The active list, uncapped in height, with an
+    "Acknowledge all" control.</figcaption>
+  </figure>
+
+  <h4>13.3.2 Alarm log</h4>
+  <figure>
+    <img src="figures/sec-alarmlog.png" alt="Alarm log table">
+    <figcaption><b>Figure 13.3</b> &mdash; The alarm log. Every episode with its three
+    timestamps and duration.</figcaption>
+  </figure>
+  <table>
+    <thead><tr><th style="width:24mm">Column</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td>Tag / Location</td><td>The affected point and its name.</td></tr>
+      <tr><td>Type</td><td><em>Over limit</em> (consumption), <em>Under-output</em> (generation), or <em>Comms</em> (communications loss).</td></tr>
+      <tr><td>Severity</td><td>The highest severity the episode reached, not its severity now.</td></tr>
+      <tr><td>Peak</td><td>The most extreme value during the episode &mdash; maximum for high alarms, minimum for low.</td></tr>
+      <tr><td>Limit</td><td>The limit that was breached, in kW.</td></tr>
+      <tr><td>Raised / Acknowledged / Cleared</td><td>The three timestamps. Acknowledged is blank if never acknowledged; Cleared reads "ongoing" while active.</td></tr>
+      <tr><td>Duration</td><td>Cleared time minus raised time, or elapsed time if still active.</td></tr>
+    </tbody>
+  </table>
+  <p class="tbl-cap"><b>Table 13.1</b> &mdash; Alarm log columns.<span class="pv pv-impl">IMPL</span></p>
+  <p>The log retains up to 500 closed episodes in memory. It is <strong>not persisted</strong>:
+  reloading the page clears it. Export to CSV from the Reports screen before reloading if a record
+  is required.<span class="pv pv-impl">IMPL</span></p>
+
+  <h3>13.4 Practical use case</h3>
+  <p>A monthly review asks how many limit exceedances occurred and how promptly they were handled.
+  The log gives episode count by type and severity, and the gap between Raised and Acknowledged
+  gives the response time for each.</p>
+</section>
+
+<!-- ============================================================= CHAPTER 14 -->
+<section class="chapter" id="ch14" data-title="Screen Analysis: Reports, Forecasting &amp; Settings" data-num="14">
+  <div class="ch-head">
+    <span class="ch-num">Chapter 14</span>
+    <h2>Screen Analysis &mdash; Reports, Forecasting &amp; Settings</h2>
+    <p class="ch-intro">The final three screens: period reporting, demand projection, and the
+    provenance record.</p>
+  </div>
+
+  <h3>14.1 Reports</h3>
+  <h4>14.1.1 Purpose and rationale</h4>
+  <p>To present period totals and export the underlying data. This screen serves management rather
+  than operations: the audience wants the trend and the numbers, not the moment.</p>
+
+  <h4>14.1.2 Session summary</h4>
+  <figure>
+    <img src="figures/sec-mgmtsummary.png" alt="Session summary">
+    <figcaption><b>Figure 14.1</b> &mdash; Ten session figures, with CSV export controls beneath.</figcaption>
+  </figure>
+  <p>Monitoring start, elapsed time, demand now, average demand, peak demand with timestamp, load
+  factor, energy consumed, points reporting, open alarms, and episodes logged.<span class="pv pv-impl">IMPL</span></p>
+
+  <h4>14.1.3 CSV export</h4>
+  <table>
+    <thead><tr><th style="width:30mm">Export</th><th>Columns</th></tr></thead>
+    <tbody>
+      <tr><td>Points CSV</td><td>tag_id, name, location, group, zone, substation, units, unit_kw_estimated, rated_kw_estimated, warn_limit_kw, alarm_limit_kw, value_kw, typical_kw, pct_of_limit, severity, quality, session_peak_kw, session_energy_kwh, last_sample_iso</td></tr>
+      <tr><td>Alarm log CSV</td><td>tag_id, name, type, severity, limit_kw, trigger_kw, peak_kw, raised_iso, acked_iso, cleared_iso, duration_s, state, message</td></tr>
+    </tbody>
+  </table>
+  <p class="tbl-cap"><b>Table 14.1</b> &mdash; CSV export schemas. Note that estimated fields are
+  named as such in the column headings, so the distinction survives export into a
+  spreadsheet.<span class="pv pv-impl">IMPL</span></p>
+
+  <h4>14.1.4 Charts</h4>
+  <figure>
+    <img src="figures/sec-mgmtgroup.png" alt="Consumption by group">
+    <figcaption><b>Figure 14.2</b> &mdash; Consumption by group, ranked, with alarm-holding groups
+    coloured.</figcaption>
+  </figure>
+  <figure>
+    <img src="figures/sec-mgmtsub.png" alt="Substation utilisation">
+    <figcaption><b>Figure 14.3</b> &mdash; Substation utilisation against installed capacity, with
+    transformer counts. Amber above 80%, red above 90%.</figcaption>
+  </figure>
+
+  <h3>14.2 Forecasting</h3>
+  <figure>
+    <img src="figures/fig-forecast.png" alt="Forecasting screen">
+    <figcaption><b>Figure 14.4</b> &mdash; The Forecasting screen: stat tiles, the 24-hour band
+    chart, the method note, and the forecast-points table.</figcaption>
+  </figure>
+
+  <h4>14.2.1 Purpose and rationale</h4>
+  <p>To project demand over the coming 24 hours so peaks can be anticipated and capacity headroom
+  assessed in advance.</p>
+
+  <h4>14.2.2 Stat tiles</h4>
+  <figure>
+    <img src="figures/sec-fcstats.png" alt="Forecast stat tiles">
+    <figcaption><b>Figure 14.5</b> &mdash; Forecast peak with approximate hour, demand now,
+    headroom at peak, and forecast 24-hour energy.</figcaption>
+  </figure>
+  <p>Headroom = (firm capacity &minus; forecast peak) &divide; firm capacity &times; 100, where
+  firm capacity is the sum of the three substations' usable kW.<span class="pv pv-impl">IMPL</span></p>
+
+  <h4>14.2.3 Forecast chart</h4>
+  <figure>
+    <img src="figures/sec-fcchart.png" alt="Forecast band chart">
+    <figcaption><b>Figure 14.6</b> &mdash; Solid line to the left of the marker is actual; dashed
+    to the right is forecast. The shaded band is the confidence range, widening with horizon.</figcaption>
+  </figure>
+  <dl class="kv">
+    <dt>X-axis</dt><dd>Clock hour, from two hours before now to 22 hours ahead.</dd>
+    <dt>Y-axis</dt><dd>Demand in kW, with rated demand marked as a reference.</dd>
+    <dt>Band</dt><dd>&plusmn;6% at the current hour, widening linearly to &plusmn;20% at the far horizon.<span class="pv pv-impl">IMPL</span></dd>
+  </dl>
+
+  <div class="callout callout--warn">
+    <div class="callout-title">Method &mdash; stated on the screen itself</div>
+    <p>This is a <strong>profile-based projection, not a trained prediction</strong>. Each asset
+    group's rated demand is shaped by its own diurnal curve and the results summed. No historical
+    consumption exists in the register to train a statistical model on. Once several weeks of real
+    telemetry have been recorded, this should be replaced with a model fitted to that history. The
+    dashboard prints this caveat directly beneath the chart.<span class="pv pv-impl">IMPL</span></p>
+  </div>
+
+  <h4>14.2.4 Forecast points table</h4>
+  <figure>
+    <img src="figures/sec-fctable.png" alt="Forecast points table">
+    <figcaption><b>Figure 14.7</b> &mdash; Six-hourly forecast values with confidence ranges and
+    each as a percentage of capacity.</figcaption>
+  </figure>
+
+  <h3>14.3 Settings</h3>
+  <figure>
+    <img src="figures/sec-provenance.png" alt="Data provenance statement">
+    <figcaption><b>Figure 14.8</b> &mdash; The full provenance statement: what came from the
+    register, what is estimated, and what is simulated.</figcaption>
+  </figure>
+  <p>This screen carries no controls. It exists to hold the provenance statement and the register
+  gap list in a permanent location &mdash; the screen to open if a figure is challenged. Display
+  preferences (theme, density, source) live in the header rather than
+  here.<span class="pv pv-impl">IMPL</span></p>
+
+  <h4>14.3.1 Practical use case</h4>
+  <p>During a review a stakeholder questions the 16.7 MW connected-capacity figure. Settings shows
+  it derives from 18,530 kVA of installed transformer capacity stated in the register, converted at
+  an assumed 0.9 power factor &mdash; and that the per-substation split is an assumption while the
+  total is not.</p>
+</section>

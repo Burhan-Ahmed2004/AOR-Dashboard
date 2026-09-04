@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Power Monitor — Technical Analysis Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<style>
+/* =========================================================================
+   TECHNICAL REPORT STYLESHEET
+   Print-first. A single light palette by deliberate choice: this document
+   exists to be printed and read on paper or as a PDF, where a dark theme
+   would be wrong.
+   ========================================================================= */
+:root{
+  --ink:#14171a;
+  --ink-2:#3d454d;
+  --ink-3:#6b747d;
+  --rule:#c9ced4;
+  --rule-2:#e2e6ea;
+  --accent:#1a4b7c;
+  --accent-2:#2f6ba6;
+  --tint:#eef3f8;
+  --tint-2:#f6f8fa;
+  --ok:#1c6b33;
+  --warn:#8a5d00;
+  --crit:#96262a;
+  --paper:#ffffff;
+}
+@page{ size:A4; margin:20mm 18mm 18mm 18mm; }
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--paper);color:var(--ink);
+  font-family:"Source Serif 4",Cambria,Georgia,"Times New Roman",serif;
+  font-size:10.2pt;line-height:1.52;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+h1,h2,h3,h4,h5{
+  font-family:"Source Sans 3","Segoe UI",system-ui,sans-serif;
+  margin:0;color:var(--ink);font-weight:600;line-height:1.22;
+}
+p{margin:0 0 8pt}
+p:last-child{margin-bottom:0}
+strong{font-weight:600}
+code,.mono{font-family:"IBM Plex Mono",Consolas,"Courier New",monospace}
+
+/* ------------------------------------------------------------------ cover */
+.cover{
+  height:257mm;display:flex;flex-direction:column;
+  break-after:page;position:relative;padding-top:6mm;
+}
+.cover-rule{height:3pt;background:var(--accent);width:100%;margin-bottom:10mm}
+.cover-kicker{
+  font-family:"IBM Plex Mono",monospace;font-size:8.5pt;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--accent-2);margin-bottom:7mm;
+}
+.cover h1{
+  font-size:30pt;line-height:1.1;letter-spacing:-.02em;font-weight:700;
+  max-width:150mm;margin-bottom:4mm;
+}
+.cover-sub{
+  font-size:14pt;color:var(--ink-2);font-family:"Source Sans 3",sans-serif;
+  font-weight:400;max-width:150mm;margin-bottom:10mm;
+}
+.cover-abstract{
+  font-size:10.5pt;color:var(--ink-2);max-width:132mm;line-height:1.62;
+  padding-left:5mm;border-left:2pt solid var(--rule);
+}
+.cover-meta{margin-top:auto;border-top:1pt solid var(--rule);padding-top:5mm}
+.cover-meta table{width:100%;border-collapse:collapse;font-size:9pt}
+.cover-meta td{padding:2.4mm 0;vertical-align:top;border:0}
+.cover-meta td:first-child{
+  width:42mm;color:var(--ink-3);font-family:"Source Sans 3",sans-serif;
+  text-transform:uppercase;letter-spacing:.07em;font-size:7.6pt;padding-top:3mm;
+}
+.cover-meta td:last-child{font-family:"Source Sans 3",sans-serif;font-weight:600;color:var(--ink)}
+
+/* -------------------------------------------------------------------- toc */
+.toc{break-after:page}
+.toc h2{font-size:15pt;margin-bottom:6mm;padding-bottom:2.5mm;border-bottom:1.5pt solid var(--accent)}
+.toc-list{display:grid;gap:0}
+.toc-row{
+  display:grid;grid-template-columns:11mm 1fr auto;gap:3mm;align-items:baseline;
+  padding:1.9mm 0;border-bottom:.4pt dotted var(--rule);
+  font-family:"Source Sans 3",sans-serif;font-size:9.6pt;
+}
+.toc-row.is-sub{padding-left:11mm;font-size:9pt;color:var(--ink-2);border-bottom-color:var(--rule-2)}
+.toc-n{color:var(--accent-2);font-weight:600;font-family:"IBM Plex Mono",monospace;font-size:8.6pt}
+.toc-p{font-family:"IBM Plex Mono",monospace;font-size:8.6pt;color:var(--ink-3);font-variant-numeric:tabular-nums}
+
+/* --------------------------------------------------------------- chapters */
+.chapter{break-before:page}
+.ch-head{margin-bottom:6mm;padding-bottom:3mm;border-bottom:1.5pt solid var(--accent)}
+.ch-num{
+  font-family:"IBM Plex Mono",monospace;font-size:8.5pt;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--accent-2);display:block;margin-bottom:2mm;
+}
+.ch-head h2{font-size:17pt;letter-spacing:-.015em}
+.ch-intro{font-size:10.4pt;color:var(--ink-2);max-width:150mm;margin-top:3mm}
+
+h3{font-size:11.6pt;margin:7mm 0 2.5mm;color:var(--accent)}
+h4{font-size:10.2pt;margin:5mm 0 1.8mm;color:var(--ink)}
+h5{font-size:9.4pt;margin:3.5mm 0 1.2mm;color:var(--ink-2);
+   font-family:"Source Sans 3",sans-serif;text-transform:uppercase;letter-spacing:.06em}
+
+/* ----------------------------------------------------------------- tables */
+table{width:100%;border-collapse:collapse;font-size:8.7pt;margin:3mm 0 4mm;
+  font-family:"Source Sans 3",sans-serif}
+thead{display:table-header-group}
+th{
+  text-align:left;background:var(--tint);color:var(--ink);font-weight:600;font-size:7.9pt;
+  text-transform:uppercase;letter-spacing:.055em;padding:2.2mm 2.4mm;
+  border-bottom:.8pt solid var(--rule);vertical-align:bottom;
+}
+td{padding:2mm 2.4mm;border-bottom:.4pt solid var(--rule-2);vertical-align:top;color:var(--ink-2);line-height:1.42}
+tr{break-inside:avoid}
+td:first-child{color:var(--ink);font-weight:600}
+table.plain td:first-child{font-weight:400;color:var(--ink-2)}
+.num{text-align:right;font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tbl-cap,.fig-cap{
+  font-family:"Source Sans 3",sans-serif;font-size:8.1pt;color:var(--ink-3);
+  margin:0 0 4mm;line-height:1.4;
+}
+.tbl-cap{margin-top:-2mm}
+.tbl-cap b,.fig-cap b{color:var(--ink-2);font-weight:600}
+
+/* ---------------------------------------------------------------- figures */
+figure{margin:4mm 0 5mm;break-inside:avoid}
+figure img{width:100%;border:.6pt solid var(--rule);display:block}
+figcaption{
+  font-family:"Source Sans 3",sans-serif;font-size:8.1pt;color:var(--ink-3);
+  margin-top:2mm;line-height:1.42;
+}
+figcaption b{color:var(--ink-2);font-weight:600}
+
+/* ---------------------------------------------------------------- callout */
+.callout{
+  border-left:2.5pt solid var(--accent-2);background:var(--tint-2);
+  padding:3.2mm 4mm;margin:3.5mm 0;font-size:9.4pt;break-inside:avoid;
+}
+.callout--warn{border-left-color:var(--warn)}
+.callout--crit{border-left-color:var(--crit)}
+.callout-title{
+  font-family:"Source Sans 3",sans-serif;font-weight:600;font-size:8.4pt;
+  text-transform:uppercase;letter-spacing:.06em;color:var(--accent);margin-bottom:1.5mm;
+}
+.callout--warn .callout-title{color:var(--warn)}
+.callout--crit .callout-title{color:var(--crit)}
+
+/* --------------------------------------------------------------- formulas */
+.formula{
+  font-family:"IBM Plex Mono",monospace;font-size:9pt;background:var(--tint-2);
+  border:.5pt solid var(--rule-2);border-left:2pt solid var(--accent-2);
+  padding:2.6mm 3.4mm;margin:2.5mm 0;line-height:1.7;break-inside:avoid;
+  white-space:pre-wrap;color:var(--ink);
+}
+.formula .cmt{color:var(--ink-3)}
+
+/* ------------------------------------------------------------- provenance */
+.pv{
+  font-family:"IBM Plex Mono",monospace;font-size:6.9pt;font-weight:600;letter-spacing:.07em;
+  padding:.6mm 1.4mm;border-radius:1.5pt;vertical-align:1.5pt;margin-left:1.5mm;
+  white-space:nowrap;
+}
+.pv-impl{background:#e4efe6;color:var(--ok)}
+.pv-dom{background:#e8eef5;color:var(--accent)}
+.pv-int{background:#f5efe0;color:var(--warn)}
+
+/* ------------------------------------------------------------------ lists */
+ul,ol{margin:0 0 8pt;padding-left:5.5mm}
+li{margin-bottom:1.6mm;line-height:1.5}
+ul.tight li,ol.tight li{margin-bottom:.8mm}
+dl.kv{display:grid;grid-template-columns:34mm 1fr;gap:1.6mm 4mm;margin:2mm 0 4mm;font-size:9.3pt}
+dl.kv dt{font-family:"Source Sans 3",sans-serif;font-weight:600;color:var(--ink)}
+dl.kv dd{margin:0;color:var(--ink-2)}
+
+/* ----------------------------------------------------------- metric block */
+.metric{break-inside:avoid;border:.6pt solid var(--rule-2);padding:3.5mm 4mm;margin:3.5mm 0;
+  background:var(--tint-2)}
+.metric h4{margin-top:0;color:var(--accent);font-size:10.6pt}
+.metric dl.kv{grid-template-columns:30mm 1fr;margin-bottom:0;font-size:9.1pt}
+
+/* ------------------------------------------------------------ flow diagram */
+.flowdiag{
+  font-family:"IBM Plex Mono",monospace;font-size:8.3pt;line-height:1.55;
+  background:var(--tint-2);border:.5pt solid var(--rule-2);padding:4mm;
+  margin:3mm 0 2mm;white-space:pre;overflow-x:auto;break-inside:avoid;color:var(--ink-2);
+}
+
+.two-col{column-count:2;column-gap:7mm}
+.two-col p{margin-bottom:5pt}
+.avoid{break-inside:avoid}
+.tight{margin-top:0}
+</style>
+</head>
+<body>
+
+<!-- ==================================================================== COVER -->
+<div class="cover">
+  <div class="cover-rule"></div>
+  <div class="cover-kicker">Technical Analysis &amp; Explanation Report</div>
+  <h1>Electricity Management Dashboard</h1>
+  <div class="cover-sub">Power Monitor &mdash; AOR / GE(N) Maint Isld</div>
+  <div class="cover-abstract">
+    <p>A complete technical analysis of the Power Monitor dashboard: its purpose, architecture,
+    every screen and component, every metric and its formula, the origin and quality of every
+    value it displays, and how the system should be read and interpreted.</p>
+    <p>This report is written to be read without prior exposure to the dashboard. It documents
+    what the implementation actually does, and states explicitly where a value is measured,
+    derived, estimated or simulated.</p>
+  </div>
+  <div class="cover-meta">
+    <table>
+      <tr><td>Subject system</td><td>Power Monitor &mdash; Electricity Management Dashboard</td></tr>
+      <tr><td>Project</td><td>Power_Consumption_Dashboard</td></tr>
+      <tr><td>Source of record</td><td class="mono">AOR - GE (N) Maint Isld.docx</td></tr>
+      <tr><td>Report purpose</td><td>Technical explanation, handover and review</td></tr>
+      <tr><td>Technology</td><td>Vanilla ES modules, zero runtime dependencies, Node.js reference server</td></tr>
+      <tr><td>Scope analysed</td><td>12 screens &middot; 110 register points &middot; 16 source modules</td></tr>
+      <tr><td>Report date</td><td id="reportDate">&mdash;</td></tr>
+      <tr><td>Document status</td><td>Issued for review</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ====================================================================== TOC -->
+<div class="toc">
+  <h2>Contents</h2>
+  <div class="toc-list" id="tocList"></div>
+  <p class="tbl-cap" style="margin-top:5mm"><b>Provenance markers.</b> Throughout this report,
+  claims carry a marker showing their basis:
+  <span class="pv pv-impl">IMPL</span> verified directly from the implementation source;
+  <span class="pv pv-dom">DOMAIN</span> standard electrical or SCADA domain knowledge;
+  <span class="pv pv-int">INTERP</span> reasonable interpretation by the analyst. Where something
+  could not be established from the code, the report says so explicitly.</p>
+</div>

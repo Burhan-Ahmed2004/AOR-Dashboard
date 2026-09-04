@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ur-Latn">
+<head>
+<meta charset="utf-8">
+<title>Power Monitor — Aasan Report (Roman Urdu)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+:root{
+  --ink:#14171a; --ink-2:#3d454d; --ink-3:#6b747d;
+  --rule:#c9ced4; --rule-2:#e2e6ea;
+  --accent:#1a4b7c; --accent-2:#2f6ba6;
+  --tint:#eef3f8; --tint-2:#f6f8fa;
+  --ok:#1c6b33; --warn:#8a5d00; --crit:#96262a;
+}
+@page{ size:A4; margin:18mm 16mm 16mm 16mm; }
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:#fff;color:var(--ink);
+  font-family:"Source Serif 4",Cambria,Georgia,serif;
+  font-size:9.9pt;line-height:1.5;-webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:"Source Sans 3","Segoe UI",system-ui,sans-serif;margin:0;font-weight:600;line-height:1.2}
+p{margin:0 0 6pt}
+code,.mono{font-family:"IBM Plex Mono",Consolas,monospace;font-size:.92em}
+
+/* cover + contents on ONE page to save space */
+.cover{break-after:page}
+.cover-rule{height:3pt;background:var(--accent);margin-bottom:8mm}
+.kicker{font-family:"IBM Plex Mono",monospace;font-size:8pt;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--accent-2);margin-bottom:5mm}
+.cover h1{font-size:26pt;line-height:1.08;letter-spacing:-.02em;font-weight:700;margin-bottom:3mm}
+.cover-sub{font-size:12.5pt;color:var(--ink-2);font-family:"Source Sans 3",sans-serif;margin-bottom:6mm}
+.cover-note{font-size:10pt;color:var(--ink-2);max-width:128mm;padding-left:4mm;
+  border-left:2pt solid var(--rule);margin-bottom:8mm}
+.cover-meta{border-top:1pt solid var(--rule);border-bottom:1pt solid var(--rule);
+  padding:3mm 0;margin-bottom:7mm}
+.cover-meta table{width:100%;border-collapse:collapse;font-size:8.6pt}
+.cover-meta td{padding:1.5mm 0;border:0;vertical-align:top}
+.cover-meta td:first-child{width:38mm;color:var(--ink-3);font-family:"Source Sans 3",sans-serif;
+  text-transform:uppercase;letter-spacing:.06em;font-size:7.2pt;padding-top:2mm}
+.cover-meta td:last-child{font-family:"Source Sans 3",sans-serif;font-weight:600}
+
+.toc h2{font-size:12pt;margin-bottom:3mm;padding-bottom:2mm;border-bottom:1.2pt solid var(--accent)}
+.toc-row{display:grid;grid-template-columns:9mm 1fr auto;gap:3mm;align-items:baseline;
+  padding:1.5mm 0;border-bottom:.4pt dotted var(--rule);
+  font-family:"Source Sans 3",sans-serif;font-size:9.2pt}
+.toc-n{color:var(--accent-2);font-weight:600;font-family:"IBM Plex Mono",monospace;font-size:8.2pt}
+.toc-p{font-family:"IBM Plex Mono",monospace;font-size:8.2pt;color:var(--ink-3)}
+
+.chapter{break-before:page}
+.ch-head{margin-bottom:4mm;padding-bottom:2.5mm;border-bottom:1.2pt solid var(--accent)}
+.ch-num{font-family:"IBM Plex Mono",monospace;font-size:8pt;letter-spacing:.15em;
+  text-transform:uppercase;color:var(--accent-2);display:block;margin-bottom:1.5mm}
+.ch-head h2{font-size:15pt;letter-spacing:-.015em}
+.ch-intro{font-size:9.9pt;color:var(--ink-2);margin-top:2mm}
+h3{font-size:10.8pt;margin:5mm 0 2mm;color:var(--accent)}
+h4{font-size:9.8pt;margin:3.5mm 0 1.2mm}
+
+table{width:100%;border-collapse:collapse;font-size:8.4pt;margin:2.5mm 0 3mm;
+  font-family:"Source Sans 3",sans-serif}
+thead{display:table-header-group}
+th{text-align:left;background:var(--tint);font-weight:600;font-size:7.6pt;text-transform:uppercase;
+  letter-spacing:.05em;padding:1.8mm 2mm;border-bottom:.8pt solid var(--rule);vertical-align:bottom}
+td{padding:1.7mm 2mm;border-bottom:.4pt solid var(--rule-2);vertical-align:top;color:var(--ink-2);line-height:1.4}
+tr{break-inside:avoid}
+td:first-child{color:var(--ink);font-weight:600}
+.num{text-align:right;font-family:"IBM Plex Mono",monospace;white-space:nowrap}
+.cap{font-family:"Source Sans 3",sans-serif;font-size:7.8pt;color:var(--ink-3);margin:-1mm 0 3mm;line-height:1.35}
+.cap b{color:var(--ink-2)}
+
+figure{margin:3mm 0 4mm;break-inside:avoid}
+figure img{width:100%;border:.6pt solid var(--rule);display:block}
+figcaption{font-family:"Source Sans 3",sans-serif;font-size:7.8pt;color:var(--ink-3);
+  margin-top:1.5mm;line-height:1.35}
+figcaption b{color:var(--ink-2)}
+
+.box{border-left:2.5pt solid var(--accent-2);background:var(--tint-2);padding:2.8mm 3.5mm;
+  margin:3mm 0;font-size:9.2pt;break-inside:avoid}
+.box--warn{border-left-color:var(--warn)}
+.box--crit{border-left-color:var(--crit)}
+.box-t{font-family:"Source Sans 3",sans-serif;font-weight:600;font-size:8.2pt;text-transform:uppercase;
+  letter-spacing:.05em;color:var(--accent);margin-bottom:1.2mm}
+.box--warn .box-t{color:var(--warn)} .box--crit .box-t{color:var(--crit)}
+
+.f{font-family:"IBM Plex Mono",monospace;font-size:8.4pt;background:var(--tint-2);
+  border-left:2pt solid var(--accent-2);padding:2.2mm 3mm;margin:2mm 0;line-height:1.6;
+  white-space:pre-wrap;break-inside:avoid}
+
+ul,ol{margin:0 0 6pt;padding-left:5mm}
+li{margin-bottom:1.2mm;line-height:1.45}
+.tag{font-family:"IBM Plex Mono",monospace;font-size:.9em;color:var(--accent)}
+.two{column-count:2;column-gap:6mm}
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="cover-rule"></div>
+  <div class="kicker">Technical Report &middot; Roman Urdu &middot; Aasan Zabaan</div>
+  <h1>Power Monitor Dashboard<br>Mukammal Samjhauti</h1>
+  <div class="cover-sub">Bijli ka Monitoring System &mdash; AOR / GE(N) Maint Isld</div>
+  <div class="cover-note">
+    <p>Is report me poora dashboard aasan alfaz me samjhaya gaya hai. Har tab kya dikhata hai,
+    har number ka kya matlab hai, kaun sa data asli hai aur kaun sa banaya hua &mdash; sab kuch
+    is me hai.</p>
+    <p>Ye report un logon ke liye hai jo pehli baar ye dashboard dekh rahe hain, aur unke liye
+    bhi jinhen kisi doosre ko samjhana hai.</p>
+  </div>
+  <div class="cover-meta">
+    <table>
+      <tr><td>System ka naam</td><td>Power Monitor &mdash; Electricity Management Dashboard</td></tr>
+      <tr><td>Project</td><td>Power_Consumption_Dashboard</td></tr>
+      <tr><td>Data ka source</td><td class="mono">AOR - GE (N) Maint Isld.docx</td></tr>
+      <tr><td>Kitne tabs</td><td>12 screens &middot; 110 monitored jagahen</td></tr>
+      <tr><td>Report ki tareekh</td><td id="reportDate">&mdash;</td></tr>
+    </table>
+  </div>
+  <div class="toc">
+    <h2>Fehrist (Contents)</h2>
+    <div id="tocList"></div>
+  </div>
+</div>

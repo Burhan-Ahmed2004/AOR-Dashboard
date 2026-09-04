@@ -1,0 +1,449 @@
+<!-- ================================================================= CH 1 -->
+<section class="chapter" data-num="1" data-title="Ye Dashboard Kya Hai">
+  <div class="ch-head">
+    <span class="ch-num">Bab 1</span>
+    <h2>Ye Dashboard Kya Hai</h2>
+    <p class="ch-intro">Sabse pehle ye samajhna zaroori hai ke ye cheez hai kya, aur kis masle
+    ka hal hai.</p>
+  </div>
+
+  <h3>1.1 Aasan lafzon me</h3>
+  <p>Power Monitor aik website jaisa system hai jo batata hai ke <strong>poore complex me bijli
+  kahan aur kitni kharch ho rahi hai</strong>. Ye complex 360 acre ka hai, is me 2,157 buildings
+  hain, 3 bijli ke substation hain aur 109 transformers hain.</p>
+
+  <p>Dashboard par <strong>110 jagahen</strong> monitor hoti hain. Har jagah ka apna code hota
+  hai &mdash; jaise <span class="tag">TW-01</span> (Tube Well No.1) ya
+  <span class="tag">MED-HOSP</span> (PNS Hafeez Hospital). Har jagah ki aik <strong>limit</strong>
+  set hai. Jab koi jagah apni limit se zyada bijli kharch kare, to dashboard turant
+  <strong>alarm</strong> deta hai, aur wo alarm tab tak screen par rehta hai jab tak koi banda
+  usay dekh kar "Ack" (acknowledge) na kar de.</p>
+
+  <h3>1.2 Ye kis masle ko hal karta hai</h3>
+  <p>Aise bare complex me pehle sirf ye pata hota hai ke <em>kya kya cheezen maujood hain</em>
+  &mdash; 980 street lights, 84 motor pumps, 14 tube wells. Lekin teen sawalon ka jawab nahi milta:</p>
+  <ul>
+    <li><strong>Bijli ja kahan rahi hai?</strong> Kaun se zone aur kaun si building sabse zyada le rahi hai.</li>
+    <li><strong>Abhi koi kharabi to nahi?</strong> Agar koi pump normal se double bijli le raha hai to uska bearing kharab ho raha hai &mdash; aur ye kisi ko pata nahi chalta jab tak wo jam na ho jaye.</li>
+    <li><strong>Nayi building lagane ki gunjaish hai?</strong> Kya substation me itni capacity bachi hai.</li>
+  </ul>
+  <p>Dashboard ye teenon sawalon ka jawab har waqt deta rehta hai.</p>
+
+  <h3>1.3 Sabse zaroori baat &mdash; REG aur SIM</h3>
+  <div class="box box--warn">
+    <div class="box-t">Ye parhe bagair koi number istemal na karein</div>
+    <p>Jo document is project ki bunyaad hai (<span class="mono">AOR - GE (N) Maint Isld.docx</span>),
+    wo aik <strong>asset register</strong> hai &mdash; yaani us me sirf ye likha hai ke kya kya
+    maujood hai aur kitni tadaad me. Us me <strong>bijli ki koi reading nahi hai</strong>.</p>
+    <p>Hum ne document me search kiya: <em>voltage</em>, <em>frequency</em>, <em>power factor</em>,
+    <em>kWh</em>, <em>meter</em>, <em>generator</em> &mdash; in me se aik lafz bhi document me
+    nahi hai. Sifar (zero) natija.</p>
+    <p>Isliye dashboard par jo <strong>live numbers</strong> chal rahe hain wo asli meter se nahi
+    aa rahe &mdash; wo <strong>banaye gaye (simulated)</strong> hain. Lekin structure asli hai.</p>
+  </div>
+
+  <table>
+    <thead><tr><th style="width:18mm">Badge</th><th style="width:34mm">Matlab</th><th>Is me kya kya aata hai</th></tr></thead>
+    <tbody>
+      <tr><td>REG</td><td>Register se aaya</td><td>2,157 buildings, 980 lights, 84 pumps, 109 transformers (18,530 kVA), 3 substation, 8 breaker, 475 DB, tube wells ke naam aur jagah. <strong>Ye sab asli hai.</strong></td></tr>
+      <tr><td>SIM</td><td>Banaya hua</td><td>Har live reading &mdash; kW, voltage, current, frequency, power factor, energy, breaker ki halat. <strong>Ye asli measurement nahi hai.</strong></td></tr>
+    </tbody>
+  </table>
+  <p class="cap"><b>Table 1.1</b> &mdash; Dashboard par har number ke saath chhota sa badge lagta
+  hai jo batata hai ke wo kahan se aaya.</p>
+
+  <div class="box">
+    <div class="box-t">Aik line me kaise batayein</div>
+    <p>"Structure bilkul asli hai aur hamare register se milta hai. Live numbers abhi model
+    (simulation) ke hain, aur wo saaf saaf mark kiye gaye hain. Jab asli meter lag jayenge to
+    sirf data badlega, dashboard wesa ka wesa chalta rahega."</p>
+  </div>
+
+  <h3>1.4 Kaun log istemal karenge</h3>
+  <table>
+    <thead><tr><th style="width:36mm">Kaun</th><th>Unhe kya chahiye</th></tr></thead>
+    <tbody>
+      <tr><td>Control room operator</td><td>Har waqt dekhta rahe ke koi kharabi to nahi. Overview aur Alarms tab.</td></tr>
+      <tr><td>Maintenance engineer</td><td>Kisi aik jagah ki tafseel &mdash; uska trend, limit, purane alarm. Load Monitoring tab.</td></tr>
+      <tr><td>Electrical engineer</td><td>Voltage, phase imbalance, substation ka load. Voltage &amp; Freq, Power Flow tab.</td></tr>
+      <tr><td>Facilities manager</td><td>Kitni bijli kharch hui, kahan sabse zyada, kharcha kam kaise ho. Energy aur Reports tab.</td></tr>
+      <tr><td>Planner</td><td>Nayi building ke liye capacity hai ya nahi. Forecasting tab.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ================================================================= CH 2 -->
+<section class="chapter" data-num="2" data-title="Bijli ke Basic Alfaz">
+  <div class="ch-head">
+    <span class="ch-num">Bab 2</span>
+    <h2>Bijli ke Basic Alfaz</h2>
+    <p class="ch-intro">Ye words dashboard par baar baar aate hain. Pehle aasan matlab, phir
+    thoda technical.</p>
+  </div>
+
+  <h3>2.1 Power aur Energy &mdash; sabse zyada confusion yahan hoti hai</h3>
+  <div class="box">
+    <div class="box-t">Aik misaal se samjhein</div>
+    <p><strong>Power (kW)</strong> gaari ke <em>speedometer</em> jaisa hai &mdash; abhi is waqt
+    kitni tez bijli istemal ho rahi hai.</p>
+    <p><strong>Energy (kWh)</strong> gaari ke <em>meter (odometer)</em> jaisa hai &mdash; ab tak
+    kitni bijli total istemal ho chuki hai. <strong>Bill isi ka aata hai.</strong></p>
+  </div>
+
+  <div class="f">Energy = Power &times; Time
+
+Misaal: aik pump 10 kW ka hai aur 5 ghante chala.
+        Energy = 10 kW &times; 5 ghante = 50 kWh</div>
+
+  <h3>2.2 Zaroori units</h3>
+  <table>
+    <thead><tr><th style="width:20mm">Unit</th><th style="width:30mm">Poora naam</th><th>Aasan matlab</th></tr></thead>
+    <tbody>
+      <tr><td>kW</td><td>Kilowatt</td><td>Abhi kitni tez bijli chal rahi hai. Aik kettle taqreeban 2 kW ka hota hai.</td></tr>
+      <tr><td>MW</td><td>Megawatt</td><td>1 MW = 1,000 kW. Poore site ka total isi me likha jata hai (taqreeban 4.5 MW).</td></tr>
+      <tr><td>kWh</td><td>Kilowatt-hour</td><td>Kitni bijli kharch hui. <strong>Bill isi par aata hai.</strong> 1 kW aik ghanta chale to 1 kWh.</td></tr>
+      <tr><td>MWh</td><td>Megawatt-hour</td><td>1,000 kWh. Dashboard khud switch kar leta hai jab 1,000 se zyada ho jaye.</td></tr>
+      <tr><td>kVA</td><td>Kilovolt-ampere</td><td>Tar aur transformer par total kitna bojh hai. Transformer ki rating isi me hoti hai.</td></tr>
+      <tr><td>kVAr / MVAR</td><td>Reactive power</td><td>Wo bijli jo kaam to nahi karti lekin motor aur transformer ko chahiye hoti hai.</td></tr>
+      <tr><td>V / kV</td><td>Volt / Kilovolt</td><td>Bijli ka "pressure". Hamare site par 11 kV (11,000 volt) aati hai.</td></tr>
+      <tr><td>A</td><td>Ampere</td><td>Kitni bijli beh rahi hai. Tar ki motai isi hisaab se hoti hai.</td></tr>
+      <tr><td>Hz</td><td>Hertz</td><td>Bijli aik second me kitni baar rukh badalti hai. 50 ke qareeb rehna zaroori hai.</td></tr>
+      <tr><td>%</td><td>Percent</td><td>Loading, efficiency, limit ka kitna hissa &mdash; sab me.</td></tr>
+      <tr><td>t</td><td>Ton</td><td>CO&#8322; (carbon) jo solar ki wajah se bacha.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>2.3 Bijli ke system ke hissay</h3>
+  <table>
+    <thead><tr><th style="width:32mm">Lafz</th><th>Matlab</th></tr></thead>
+    <tbody>
+      <tr><td>Substation</td><td>Wo jagah jahan high voltage aati hai aur usay kam kar ke aage bheja jata hai. Hamare paas 3 hain: PNS Hafeez, ARC, NHQ.</td></tr>
+      <tr><td>Transformer</td><td>Wo machine jo voltage ko high se low karti hai. Register me 109 hain, total 18,530 kVA.</td></tr>
+      <tr><td>Feeder</td><td>Wo tar/circuit jo substation se bijli aage buildings tak le kar jata hai. Register me 3 hain.</td></tr>
+      <tr><td>Busbar (Bus)</td><td>Substation ke andar mota tanba/patti jahan sab connections milte hain.</td></tr>
+      <tr><td>VCB (Vacuum Circuit Breaker)</td><td>Automatic switch jo kharabi hone par circuit kaat deta hai. 11 kV par 8 lage hain.</td></tr>
+      <tr><td>DB (Distribution Board)</td><td>Building ke andar wala board jis me fuse/breaker hote hain. Register me 475 hain.</td></tr>
+      <tr><td>SLD (Single Line Diagram)</td><td>Bijli ke poore system ka standard naqsha. Har electrical engineer isay parh leta hai.</td></tr>
+      <tr><td>HT / LT</td><td>High Tension (11 kV, mota system) aur Low Tension (400 V, building tak).</td></tr>
+      <tr><td>Solar PV / kWp</td><td>Solar panel jo suraj se bijli banate hain. Register me 13 system hain.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>2.4 Quality ke alfaz</h3>
+  <table>
+    <thead><tr><th style="width:32mm">Lafz</th><th>Matlab aur kyun ahem hai</th></tr></thead>
+    <tbody>
+      <tr><td>Power Factor (PF)</td><td>0 se 1 tak ka score. Batata hai ke jitni bijli aayi us ka kitna hissa asal kaam me laga. <strong>0.95 se upar acha, 0.90 se neeche jurmana lagta hai.</strong> Motor zyada chalein to ye neeche aata hai.</td></tr>
+      <tr><td>Frequency</td><td>50 Hz ke qareeb rehna chahiye (49.5 se 50.5 tak). Ye poore mulk ke grid ki halat batata hai &mdash; hum apne site se isay control nahi kar sakte.</td></tr>
+      <tr><td>Voltage</td><td>11 kV nominal, 10.5 se 11.5 kV tak theek hai. Kam ho to motor garam hote hain, zyada ho to insulation kharab hoti hai.</td></tr>
+      <tr><td>Phase Imbalance</td><td>Teen phase (R, Y, B) par bojh barabar na ho. <strong>2% se kam rehna chahiye.</strong> Zyada ho to motor jal jate hain &mdash; ye sabse mehnga nuqsan hai.</td></tr>
+      <tr><td>Losses</td><td>Wo bijli jo tar aur transformer me garmi ban kar zaya ho jati hai. Aam tor par 2&ndash;3%. Paise us ke bhi dene parte hain.</td></tr>
+      <tr><td>Load Factor</td><td>Average bijli &divide; sabse zyada (peak) bijli. Zyada ho to istemal barabar hai; kam ho to sirf thori der ke peak ke liye zyada paise de rahe hain.</td></tr>
+      <tr><td>Peak Demand</td><td>Poore arse me sabse zyada bijli jo aik waqt me li gayi. Bijli wale is par alag charge lagate hain.</td></tr>
+      <tr><td>Capacity</td><td>System kitna bojh utha sakta hai. Hamari total 16.7 MW hai, jabke aam istemal sirf 4.5 MW.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ================================================================= CH 3 -->
+<section class="chapter" data-num="3" data-title="Har Tab Kya Dikhata Hai">
+  <div class="ch-head">
+    <span class="ch-num">Bab 3</span>
+    <h2>Har Tab Kya Dikhata Hai</h2>
+    <p class="ch-intro">Baayen taraf 12 tab hain. Har aik ka maqsad alag hai.</p>
+  </div>
+
+  <table>
+    <thead><tr><th style="width:32mm">Tab</th><th>Kis sawal ka jawab deta hai</th></tr></thead>
+    <tbody>
+      <tr><td>1. Overview</td><td>Abhi is waqt koi kharabi to nahi?</td></tr>
+      <tr><td>2. Power Flow</td><td>Bijli kahan se kahan ja rahi hai?</td></tr>
+      <tr><td>3. Load Monitoring</td><td>Har alag jagah kitni bijli le rahi hai?</td></tr>
+      <tr><td>4. Voltage &amp; Freq</td><td>Jo bijli aa rahi hai wo theek hai ya kharab?</td></tr>
+      <tr><td>5. Energy Analytics</td><td>Ab tak kitni bijli kharch hui aur kahan?</td></tr>
+      <tr><td>6. Solar</td><td>Solar panel theek kaam kar rahe hain?</td></tr>
+      <tr><td>7. Transformers</td><td>Hamare paas kitni transformer capacity hai?</td></tr>
+      <tr><td>8. Switchgear</td><td>Breaker aur boards ki kya halat hai?</td></tr>
+      <tr><td>9. Alarms &amp; Events</td><td>Kya kharabi hui aur kya usay handle kiya gaya?</td></tr>
+      <tr><td>10. Reports</td><td>Total figures kya hain, Excel me export ho sakta hai?</td></tr>
+      <tr><td>11. Forecasting</td><td>Agle 24 ghante me bijli ka load kitna hoga?</td></tr>
+      <tr><td>12. Settings</td><td>Har number kahan se aaya?</td></tr>
+    </tbody>
+  </table>
+  <p class="cap"><b>Table 3.1</b> &mdash; 12 tabs aik nazar me.</p>
+
+  <h3>3.1 Overview &mdash; sabse ahem screen</h3>
+  <figure>
+    <img src="figures/fig-overview.png" alt="Overview screen">
+    <figcaption><b>Tasveer 1</b> &mdash; Overview screen. Ye wo screen hai jo deewar par lagi
+    TV/monitor par hamesha chalti rehni chahiye.</figcaption>
+  </figure>
+  <p>Is par ye cheezen hain:</p>
+  <table>
+    <thead><tr><th style="width:36mm">Hissa</th><th>Kya dikhata hai</th></tr></thead>
+    <tbody>
+      <tr><td>6 bare numbers (KPI)</td><td>Total Power (MW), Reactive Power (MVAR), Power Factor, Frequency (Hz), Voltage (kV), Energy (kWh). Har aik ke neeche hara tick ya peela warning hota hai.</td></tr>
+      <tr><td>Total Load chart</td><td>Waqt ke saath bijli ka graph. Neeche dotted line "typical" hai &mdash; yaani is waqt aam tor par kitni honi chahiye.</td></tr>
+      <tr><td>Active Alarms</td><td>Jo jagahen abhi limit se upar hain. Har aik ke saath "Ack" ka button.</td></tr>
+      <tr><td>Power Distribution</td><td>Gol chart &mdash; 3 substation aur solar me se kaun kitna de raha hai.</td></tr>
+      <tr><td>Load by Category</td><td>Kaun si qism ke assets sabse zyada bijli le rahe hain.</td></tr>
+      <tr><td>Energy gauge</td><td>Ab tak kitni energy kharch hui, aur kitni honi chahiye thi.</td></tr>
+      <tr><td>Energy Summary</td><td>Kharch, solar se bani, grid se li, aur losses.</td></tr>
+      <tr><td>Single Line Diagram</td><td>Poore system ka naqsha &mdash; grid, bus, 3 substation, solar.</td></tr>
+      <tr><td>Voltage Profile</td><td>Teenon phase ka voltage graph, upar neeche laal limit lines ke saath.</td></tr>
+      <tr><td>6 chhote tiles</td><td>CO&#8322;, losses, efficiency, capacity, max demand, current.</td></tr>
+      <tr><td>Register Data Gaps</td><td>Document me jo kami/ghalti mili, wo saaf saaf likhi hui.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>3.2 Baqi tabs &mdash; mukhtasar</h3>
+  <h4>2. Power Flow</h4>
+  <p>Aik naqsha jis me moti lakeeren dikhati hain ke bijli kis raste kitni ja rahi hai. Jitni
+  moti lakeer, utni zyada bijli. Char column: source &rarr; bus &rarr; substation &rarr; group.
+  Neeche har feeder kitna load utha raha hai (percent me).</p>
+
+  <h4>3. Load Monitoring</h4>
+  <figure>
+    <img src="figures/sec-pointtable.png" alt="Points table">
+    <figcaption><b>Tasveer 2</b> &mdash; Points table. Har jagah ki live reading, typical, limit
+    aur status.</figcaption>
+  </figure>
+  <p>Sari 110 jagahon ki list. Columns ka matlab:</p>
+  <table>
+    <thead><tr><th style="width:26mm">Column</th><th>Matlab</th></tr></thead>
+    <tbody>
+      <tr><td>Tag</td><td>Us jagah ka code (jaise TW-01).</td></tr>
+      <tr><td>Location</td><td>Naam aur jagah.</td></tr>
+      <tr><td>Now</td><td>Abhi kitni bijli le raha hai (kW).</td></tr>
+      <tr><td>Typical</td><td>Is waqt aam tor par kitni leni chahiye.</td></tr>
+      <tr><td>vs typical</td><td>Normal se kitna kam/zyada (percent).</td></tr>
+      <tr><td>Limit</td><td>Alarm ki hadd.</td></tr>
+      <tr><td>% of limit</td><td>Limit ka kitna hissa istemal ho chuka. <strong>Ye sabse kaam ka column hai.</strong></td></tr>
+      <tr><td>Trend</td><td>Chhota sa graph &mdash; pichle kuch minute ka.</td></tr>
+      <tr><td>Status</td><td>Normal / Warning / Over limit / Offline.</td></tr>
+      <tr><td>Updated</td><td>Aakhri reading kitni der pehle aayi.</td></tr>
+    </tbody>
+  </table>
+  <p>Upar search box hai, group aur substation ka filter hai, aur aik button "Only points needing
+  attention" &mdash; is se sirf wo jagahen dikhti hain jinme masla hai. Kisi bhi row par click
+  karein to us jagah ki poori tafseel khul jati hai.</p>
+
+  <h4>4. Voltage &amp; Frequency</h4>
+  <p>Frequency ka graph (49.5&ndash;50.5 Hz ki limit ke saath), teen substation ke alag alag
+  voltage graph, aur aik table jis me har substation ka voltage, imbalance, current aur power
+  factor hai. <strong>Sabse zaroori number: Phase Imbalance</strong> &mdash; 2% se kam rehna chahiye.</p>
+
+  <h4>5. Energy Analytics</h4>
+  <p>Kitni energy kharch hui, average kitna load raha, peak kab tha, load factor kitna hai. Aik
+  gol chart me: grid se li gayi, solar se bani, aur losses. Aik khaas graph
+  <strong>"Load Duration Curve"</strong> &mdash; ye batata hai ke kitne waqt tak peak ke qareeb
+  rahe. Neeche top 10 sabse zyada kharch karne wali jagahen.</p>
+
+  <h4>6. Solar</h4>
+  <p>13 solar system ki performance. Sabse ahem number <strong>"Performance Ratio"</strong> hai
+  &mdash; yaani jitni bijli abhi ke suraj me banni chahiye thi, us ka kitna percent asal me bani.
+  Subah kam output normal hai; dopahar me kam output kharabi hai. Sirf ratio se ye farq pata chalta hai.</p>
+
+  <h4>7. Transformers</h4>
+  <p><strong>Ye akela tab hai jis par kuch bhi banaya hua nahi hai</strong> &mdash; sab kuch
+  register se hai. 109 transformer, 18,530 kVA, aur har substation par kitne lage hain.</p>
+
+  <h4>8. Switchgear</h4>
+  <p>8 breakers (VCB) ki halat: Closed (chal raha hai), Standby (spare), Open (band kiya gaya),
+  Tripped (kharabi par khud band ho gaya). Neeche 475 distribution boards ka summary.</p>
+
+  <h4>9. Alarms &amp; Events</h4>
+  <p>Sare active alarm, aur poori history. Har alarm ke teen waqt likhe hote hain:
+  <strong>kab hua, kab dekha gaya, kab theek hua</strong>. Ye teen waqt kisi bhi incident ke baad
+  sabse zaroori sawal ka jawab dete hain.</p>
+
+  <h4>10. Reports</h4>
+  <p>Session ka summary aur do CSV export buttons (Excel me khul jate hain): aik sari jagahon ka,
+  aik alarm history ka.</p>
+
+  <h4>11. Forecasting</h4>
+  <p>Agle 24 ghante ka andaza. Solid line = jo ho chuka, dotted line = jo hone ka andaza hai.
+  Shaded (halka) hissa confidence range hai &mdash; aage jaa kar chaura hota jata hai kyunki door
+  ka andaza kam pakka hota hai.</p>
+  <div class="box box--warn">
+    <div class="box-t">Forecast ke baare me sach</div>
+    <p>Ye asli "trained forecast" nahi hai. Ye sirf har group ke rozana ke pattern ko jorr kar
+    banaya gaya andaza hai, kyunki purana record maujood hi nahi hai jis se model seekhta.
+    Jab kuch hafton ka asli data jama ho jaye ga, tab is ko proper model se badla ja sakta hai.
+    Ye baat dashboard par bhi likhi hui hai.</p>
+  </div>
+
+  <h4>12. Settings</h4>
+  <p>Poori tafseel ke kaun sa number kahan se aaya. Agar koi banda kisi figure par sawal uthaye
+  to ye tab kholein.</p>
+</section>
+
+<!-- ================================================================= CH 4 -->
+<section class="chapter" data-num="4" data-title="Alarm System Kaise Kaam Karta Hai">
+  <div class="ch-head">
+    <span class="ch-num">Bab 4</span>
+    <h2>Alarm System Kaise Kaam Karta Hai</h2>
+    <p class="ch-intro">Ye dashboard ka sabse ahem hissa hai, aur is me kaafi soch bichar ki gayi hai.</p>
+  </div>
+
+  <h3>4.1 Masla kya hota hai</h3>
+  <p>Agar alarm ka system saada bana diya jaye &mdash; yaani "jab number limit se upar jaye to
+  alarm baja do" &mdash; to aik hi jagah se sainkron alarm aate hain aur operator alarm dekhna hi
+  chhor deta hai. Isay <strong>alarm flood</strong> kehte hain, aur ye control room ka sabse aam
+  masla hai.</p>
+
+  <h3>4.2 Is system me kya kya bandobast hai</h3>
+  <table>
+    <thead><tr><th style="width:34mm">Cheez</th><th style="width:16mm">Value</th><th>Kya karta hai</th></tr></thead>
+    <tbody>
+      <tr><td>On-delay</td><td>6 second</td><td>Limit 6 second tak lagatar cross ho, tabhi alarm bajta hai. Aik jhatka alarm nahi de sakta.</td></tr>
+      <tr><td>Hysteresis</td><td>4%</td><td>Alarm khatam karne ke liye value ko limit se <em>4% neeche</em> aana parta hai. Warna value limit par baithi rahe to alarm baar baar on-off hota rahega.</td></tr>
+      <tr><td>Off-delay</td><td>12 second</td><td>12 second tak theek rahe, tabhi alarm khatam hota hai.</td></tr>
+      <tr><td>Latching</td><td>&mdash;</td><td>Alarm khud se gayab nahi hota. Jab tak koi banda "Ack" na kare, screen par rehta hai.</td></tr>
+      <tr><td>Ringback</td><td>&mdash;</td><td>Agar kharabi khud theek ho gayi lekin kisi ne dekha nahi, tab bhi alarm list me rehta hai. Warna aane jane wali kharabi kabhi pakri hi na jaye.</td></tr>
+      <tr><td>Escalation</td><td>&mdash;</td><td>Agar wahi masla aur bigar jaye to naya alarm nahi banta &mdash; wahi purana alarm update ho jata hai.</td></tr>
+      <tr><td>Re-arm</td><td>90 second</td><td>Aik alarm khatam hone ke baad wahi jagah 90 second tak dobara wahi alarm nahi de sakti. Aik kharab sensor se darjnon entries nahi banti.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>4.3 Teen level ke alarm</h3>
+  <table>
+    <thead><tr><th style="width:30mm">Status</th><th>Matlab</th></tr></thead>
+    <tbody>
+      <tr><td>Normal</td><td>Sab theek hai, kuch karne ki zaroorat nahi.</td></tr>
+      <tr><td>Warning</td><td>Warning limit se upar chala gaya. Dekh lena chahiye, jaldi nahi.</td></tr>
+      <tr><td>Over limit</td><td>Asli limit cross ho gayi. Abhi tawajjo chahiye.</td></tr>
+      <tr><td>Offline</td><td>Meter se koi reading nahi aa rahi. <strong>Ye bijli ka masla nahi, connection ka masla hai.</strong></td></tr>
+      <tr><td>Not monitored</td><td>Register me hai lekin meter laga hi nahi (jaise TW-02, TW-06, TW-12).</td></tr>
+    </tbody>
+  </table>
+
+  <div class="box">
+    <div class="box-t">Aik ahem baat &mdash; "Offline" aur "0 kW" alag cheezen hain</div>
+    <p>Agar meter se rabta toot jaye to dashboard usay <strong>"Offline"</strong> dikhata hai,
+    <strong>"0 kW" nahi</strong>. Kyunki inka matlab bilkul alag hai: aik ka matlab hai connection
+    kharab hai, doosre ka matlab hai bijli waqai band hai. Bohot se systems is me ghalti karte hain.</p>
+  </div>
+
+  <h3>4.4 Har status me rang ke saath icon aur lafz bhi hota hai</h3>
+  <p>Sirf rang par bharosa nahi kiya gaya, kyunki (a) kuch logon ko rang ki pehchan me mushkil hoti
+  hai, (b) print black-and-white me nikle to rang khatam ho jata hai, aur (c) jaldi me lafz parhna
+  rang se zyada tez hota hai.</p>
+</section>
+
+<!-- ================================================================= CH 5 -->
+<section class="chapter" data-num="5" data-title="Data Kahan Se Aata Hai">
+  <div class="ch-head">
+    <span class="ch-num">Bab 5</span>
+    <h2>Data Kahan Se Aata Hai</h2>
+    <p class="ch-intro">Kaun sa number asli hai, kaun sa andaza, aur kaun sa banaya hua.</p>
+  </div>
+
+  <table>
+    <thead><tr><th style="width:38mm">Cheez</th><th style="width:24mm">Halat</th><th>Tafseel</th></tr></thead>
+    <tbody>
+      <tr><td>Assets ki tadaad</td><td><b>Asli</b></td><td>2,157 buildings, 980 lights, 84 pumps, 14 tube wells, 475 DB, 13 solar &mdash; sab register se.</td></tr>
+      <tr><td>Transformers</td><td><b>Asli</b></td><td>109 unit, 18,530 kVA. Register ke total se bilkul match karta hai.</td></tr>
+      <tr><td>Jagahon ke naam</td><td><b>Asli</b></td><td>Tube wells, filter plants, water tanks &mdash; naam aur jagah register se.</td></tr>
+      <tr><td>System ka structure</td><td><b>Asli</b></td><td>3 substation, 3 feeder, 8 VCB, 38 km HT, 108 km LT tar.</td></tr>
+      <tr><td>Har unit ki kW rating</td><td><b>Andaza</b></td><td>Register me nahi hai. Engineering andaza lagaya gaya. <strong>Sari limits isi par bani hain.</strong></td></tr>
+      <tr><td>Kaun sa load kis feeder par</td><td><b>Farz kiya</b></td><td>Register me nahi likha. Site ke asli SLD se theek karna hoga.</td></tr>
+      <tr><td>Sari live readings</td><td><b>Banai hui</b></td><td>Computer program se generate hoti hain.</td></tr>
+      <tr><td>Voltage, current, PF, Hz</td><td><b>Banai hui</b></td><td>Power se hisaab laga kar nikali gayi.</td></tr>
+      <tr><td>Breaker ki halat</td><td><b>Banai hui</b></td><td>Breaker ki tadaad aur jagah asli hai, halat nahi.</td></tr>
+      <tr><td>Purana record (history)</td><td><b>Kuch nahi</b></td><td>Page refresh karne par sab khatam. Koi database nahi hai.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="box box--crit">
+    <div class="box-t">Saaf baat</div>
+    <p>Is waqt dashboard par <strong>koi bhi live number asli meter se nahi aa raha</strong>.
+    Ye aik mukammal, sahi kaam karne wala monitoring system hai jo abhi banaye gaye data par chal
+    raha hai. Software taiyar hai &mdash; sirf asli meter lagne baqi hain.</p>
+  </div>
+
+  <h3>5.1 Asli SCADA se kaise joreinge</h3>
+  <div class="f">Asli meters (Modbus)
+       &darr;
+  Gateway / bridge service      &larr; ye banana parega
+       &darr;  (JSON data)
+  /api/stream
+       &darr;
+  Dashboard  &mdash; koi tabdeeli nahi</div>
+  <p>Poore dashboard me sirf <strong>aik file</strong> badalni parti hai
+  (<span class="mono">src/source.js</span>) jis me batana hota hai ke data kahan se lena hai.
+  Baqi sab screens khud ba khud asli data dikhane lag jayengi.</p>
+
+  <div class="box box--warn">
+    <div class="box-t">Do baatein SCADA jorte waqt zaroor yaad rakhein</div>
+    <p><strong>1.</strong> Agar kisi meter se rabta na ho to us ka data <em>bhejein hi nahi</em> &mdash;
+    us ki jagah <strong>0 mat bhejein</strong>. Warna "connection kharab" aur "bijli band" ka
+    farq khatam ho jayega.</p>
+    <p><strong>2.</strong> Waqt (timestamp) wo bhejein jo <em>meter par</em> reading li gayi thi,
+    na ke jab data pohancha. Warna atka hua meter bhi theek lagta rahega.</p>
+  </div>
+</section>
+
+<!-- ================================================================= CH 6 -->
+<section class="chapter" data-num="6" data-title="Dashboard Kaise Parhein">
+  <div class="ch-head">
+    <span class="ch-num">Bab 6</span>
+    <h2>Dashboard Kaise Parhein</h2>
+    <p class="ch-intro">Rozana ka tareeqa, aur akhir me zaroori baatein.</p>
+  </div>
+
+  <h3>6.1 Rozana ka 4-step check (10 second)</h3>
+  <ol>
+    <li><strong>Overview ke 6 bare numbers dekhein.</strong> Agar Power Factor, Frequency aur
+    Voltage teenon par hara tick hai, to bijli ki quality theek hai.</li>
+    <li><strong>Active Alarms dekhein.</strong> Khali hai to koi jagah limit se upar nahi.</li>
+    <li><strong>Load ka graph dekhein.</strong> Solid line dotted line ke qareeb chal rahi hai?</li>
+    <li><strong>Upar connection pill dekhein.</strong> "Live" likha ho. Agar "Paused" ya "Feed lost"
+    hai to upar wale teen check bekaar hain &mdash; data purana hai.</li>
+  </ol>
+  <p>Ye chaar theek hain to aur kuch dekhne ki zaroorat nahi.</p>
+
+  <h3>6.2 Agar kuch masla ho</h3>
+  <table>
+    <thead><tr><th style="width:12mm">Step</th><th style="width:40mm">Kahan jayein</th><th>Kyun</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Load Monitoring</td><td>"Only points needing attention" button dabayein &mdash; sirf masle wali jagahen dikhengi.</td></tr>
+      <tr><td>2</td><td>Us row par click</td><td>Us jagah ka graph limits ke saath, aur uske purane alarm.</td></tr>
+      <tr><td>3</td><td>Voltage &amp; Freq</td><td>Ye dekhne ke liye ke masla load ka hai ya aane wali bijli ka.</td></tr>
+      <tr><td>4</td><td>Power Flow / Switchgear</td><td>Masla kis feeder ya breaker par hai.</td></tr>
+      <tr><td>5</td><td>Reports</td><td>Record ke liye CSV nikal lein (Excel me khulta hai).</td></tr>
+    </tbody>
+  </table>
+
+  <h3>6.3 Ahem baatein jo zehen me rakhni chahiye</h3>
+  <table>
+    <thead><tr><th style="width:44mm">Baat</th><th>Tafseel</th></tr></thead>
+    <tbody>
+      <tr><td>Sari limits andazay par hain</td><td>Kisi unit ki asli kW rating register me nahi thi. Jab tak asli nameplate ya meter data na aaye, limits sirf "provisional" hain. <strong>Ye sabse zaroori baat hai.</strong></td></tr>
+      <tr><td>Record save nahi hota</td><td>Page refresh karne par sara data aur alarm history khatam. Zaroori ho to pehle CSV export kar lein.</td></tr>
+      <tr><td>Login nahi hai</td><td>Jo bhi link khole, poora access mil jata hai, alarm Ack karne ka bhi. Alarm log me sirf "operator" likha jata hai, naam nahi.</td></tr>
+      <tr><td>Register me aik ghalti mili</td><td>Document kehta hai <strong>14 tube wells, 12 chalu</strong>, lekin naam sirf <strong>11</strong> ke likhe hain. Aik chalu tube well ka hisaab nahi milta. Ye facilities team se poochna chahiye.</td></tr>
+      <tr><td>Generator nahi hain</td><td>Register me kisi generator ka zikr nahi, isliye diagram me bhi nahi dikhaya gaya. Sirf 11 kV grid aur solar.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>6.4 Aage kya karna hai</h3>
+  <p>Is dashboard ko asli system banane ke liye teen cheezen chahiye:</p>
+  <ol>
+    <li><strong>Asli meters</strong> &mdash; shuru me sirf 3 substation par lagayein. Isi se
+    poora Overview, Voltage aur Power Flow asli ho jayega.</li>
+    <li><strong>Asli kW ratings</strong> &mdash; taake limits qabil-e-bharosa hon.</li>
+    <li><strong>Database (historian)</strong> &mdash; taake record mehfooz rahe aur proper
+    forecasting ho sake.</li>
+  </ol>
+
+  <div class="box">
+    <div class="box-t">Aakhri baat</div>
+    <p>Software ke lehaz se ye system mukammal aur professional hai. Kami sirf data ki hai &mdash;
+    aur wo software ka masla nahi, meter lagane ka kaam hai. Achi baat ye hai ke dashboard khud
+    saaf saaf batata hai ke kaun sa number asli hai aur kaun sa nahi.</p>
+  </div>
+</section>
+
+</body>
+</html>

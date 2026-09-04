@@ -1,0 +1,272 @@
+<!-- ============================================================== CHAPTER 7 -->
+<section class="chapter" id="ch7" data-title="Screen Analysis: Load Monitoring" data-num="7">
+  <div class="ch-head">
+    <span class="ch-num">Chapter 7</span>
+    <h2>Screen Analysis &mdash; Load Monitoring</h2>
+    <p class="ch-intro">The complete working list of every monitored location, and the drill-down
+    an engineer uses to investigate one of them.</p>
+  </div>
+
+  <figure>
+    <img src="figures/fig-load.png" alt="Load Monitoring screen">
+    <figcaption><b>Figure 7.1</b> &mdash; The Load Monitoring screen: nine load-group cards above
+    the filter row and the point table.</figcaption>
+  </figure>
+
+  <h3>7.1 Purpose</h3>
+  <p>To expose every individual monitored location with its live consumption, its limits, its
+  trend and its status &mdash; searchable, filterable and sortable.</p>
+
+  <h3>7.2 Why this screen exists</h3>
+  <p>The Overview establishes that something is wrong; this screen establishes exactly what and
+  where. It is the working surface for anyone investigating a specific asset, and the only screen
+  presenting all 110 register entries at once.<span class="pv pv-int">INTERP</span></p>
+
+  <h3>7.3 Sections</h3>
+
+  <h4>7.3.1 Load group cards</h4>
+  <figure>
+    <img src="figures/sec-groupgrid.png" alt="Load group cards">
+    <figcaption><b>Figure 7.2</b> &mdash; Nine group cards. Each shows the group name and zone,
+    current demand, a status badge with any offline count, deviation from typical, point count,
+    and a loading bar.</figcaption>
+  </figure>
+  <dl class="kv">
+    <dt>Purpose</dt><dd>Give a per-group summary and act as a one-click filter for the table below.</dd>
+    <dt>Data used</dt><dd>Group roll-ups; worst severity among the group's points; count of points offline.<span class="pv pv-impl">IMPL</span></dd>
+    <dt>Behaviour</dt><dd>Clicking a card filters the table to that group and scrolls to it. Clicking again clears the filter without scrolling.<span class="pv pv-impl">IMPL</span></dd>
+    <dt>Interpretation</dt><dd>Severity and communications state are shown side by side, never one instead of the other &mdash; a group holding a critical alarm must not read as merely "offline" because one of its meters is also unreachable.</dd>
+  </dl>
+
+  <h4>7.3.2 Filter row</h4>
+  <figure>
+    <img src="figures/sec-filters.png" alt="Filter controls">
+    <figcaption><b>Figure 7.3</b> &mdash; The filter row: free-text search, group selector,
+    substation selector, an attention-only toggle, and a live result count.</figcaption>
+  </figure>
+  <p>Filters are covered in full in Chapter 15. In summary: all four combine with AND logic, and
+  the result count updates live.<span class="pv pv-impl">IMPL</span></p>
+
+  <h4>7.3.3 The point table</h4>
+  <figure>
+    <img src="figures/sec-pointtable.png" alt="Monitored points table">
+    <figcaption><b>Figure 7.4</b> &mdash; The point table. Rows carry a coloured left edge for
+    warning, critical or communications state. Unmonitored register entries (TW-02, TW-06, TW-12)
+    show em-dashes with a "Not monitored" badge rather than zeros.</figcaption>
+  </figure>
+  <table>
+    <thead><tr><th style="width:22mm">Column</th><th style="width:14mm">Unit</th><th>Meaning and how it is derived</th></tr></thead>
+    <tbody>
+      <tr><td>Tag</td><td>&mdash;</td><td>The point identifier, keyed to the register. Monospaced for scanning.</td></tr>
+      <tr><td>Location</td><td>&mdash;</td><td>Asset name, with physical location and unit count beneath.</td></tr>
+      <tr><td>Now</td><td>kW</td><td>The smoothed current reading. Shows an em-dash if the meter is offline or the point is unmonitored.</td></tr>
+      <tr><td>Typical</td><td>kW</td><td>Expected demand for this hour: rated demand &times; the group's diurnal profile factor.</td></tr>
+      <tr><td>vs typical</td><td>%</td><td>Signed deviation: (now &divide; typical) &minus; 1.</td></tr>
+      <tr><td>Limit</td><td>kW</td><td>The alarm limit. Prefixed "min" for generation points, where the limit is a floor rather than a ceiling.</td></tr>
+      <tr><td>% of limit</td><td>%</td><td>now &divide; limit &times; 100. The single most scannable column for proximity to alarm.</td></tr>
+      <tr><td>Trend</td><td>&mdash;</td><td>Sparkline of the last 24 samples with a reference line at typical.</td></tr>
+      <tr><td>Status</td><td>&mdash;</td><td>Icon, word and colour: Normal, Warning, Over limit, Offline, Bad data, Awaiting data, Not monitored.</td></tr>
+      <tr><td>Updated</td><td>time</td><td>Elapsed time since the last reading &mdash; the staleness indicator.</td></tr>
+    </tbody>
+  </table>
+  <p class="tbl-cap"><b>Table 7.1</b> &mdash; Point table columns.<span class="pv pv-impl">IMPL</span></p>
+  <dl class="kv">
+    <dt>Sorting</dt><dd>Any column heading sorts. The default is severity descending, so problems rise to the top without interaction. Re-sorting is suppressed while the pointer or keyboard focus is inside the table, so rows do not move under the reader.<span class="pv pv-impl">IMPL</span></dd>
+    <dt>What to look for</dt><dd>High <em>% of limit</em>; large positive <em>vs typical</em>; any non-Normal status; an <em>Updated</em> value that has stopped advancing.</dd>
+  </dl>
+
+  <h4>7.3.4 Point detail panel</h4>
+  <dl class="kv">
+    <dt>Purpose</dt><dd>Everything known about one location, opened by clicking a row or pressing Enter on it.</dd>
+    <dt>Contents</dt><dd>A trend chart with warning, alarm and rated levels drawn as labelled reference lines; fifteen figures including smoothed and unsmoothed values, typical, deviation, rated demand, both limits, percentage of limit, session peak and time, session energy, unit count and unit rating, group, feeding substation, service state and sample count; and that point's own alarm episode history.<span class="pv pv-impl">IMPL</span></dd>
+    <dt>Interpretation</dt><dd>Seeing the limits drawn on the same axes as the trace answers "how close is this to alarming?" without arithmetic.</dd>
+    <dt>Accessibility</dt><dd>Opens with focus on the close control; Escape closes.</dd>
+  </dl>
+
+  <h3>7.4 How it works</h3>
+  <p>All 110 rows are built once at start-up and thereafter updated in place; filtering toggles
+  row visibility rather than rebuilding the table. Sorting reorders existing nodes via a document
+  fragment. This keeps a 110-row table updating once per second without flicker.<span class="pv pv-impl">IMPL</span></p>
+
+  <h3>7.5 Practical use case</h3>
+  <p>Following the Overview alarm, an engineer opens this screen, types "tower" into search, and
+  finds ADM-TWR-C6C7 at 267 kW against a typical of 216 kW &mdash; 24% above normal, 109% of its
+  warning limit. Opening the row shows the trend crossing the warning line about eight minutes ago
+  and remaining above it. The alarm history shows no prior episode for this point, indicating a new
+  condition rather than a recurring one.</p>
+</section>
+
+<!-- ============================================================== CHAPTER 8 -->
+<section class="chapter" id="ch8" data-title="Screen Analysis: Voltage &amp; Frequency" data-num="8">
+  <div class="ch-head">
+    <span class="ch-num">Chapter 8</span>
+    <h2>Screen Analysis &mdash; Voltage &amp; Frequency</h2>
+    <p class="ch-intro">Supply quality: whether the electricity arriving is good, as distinct from
+    how much of it there is.</p>
+  </div>
+
+  <figure>
+    <img src="figures/fig-voltage.png" alt="Voltage and Frequency screen">
+    <figcaption><b>Figure 8.1</b> &mdash; The Voltage &amp; Frequency screen: stat tiles, the
+    frequency trace, three per-substation voltage charts, and the measurements table.</figcaption>
+  </figure>
+
+  <h3>8.1 Purpose</h3>
+  <p>To present the parameters that describe the <em>quality</em> of supply &mdash; frequency,
+  voltage, phase balance and current &mdash; against their statutory limits.</p>
+
+  <h3>8.2 Why this screen exists</h3>
+  <p>Poor power quality damages equipment and wastes money without ever causing an outage. Voltage
+  outside band shortens insulation life and overheats motors; sustained phase imbalance destroys
+  three-phase motors. These conditions are invisible on any consumption view, so they require
+  their own screen.<span class="pv pv-dom">DOMAIN</span></p>
+
+  <h3>8.3 Sections</h3>
+
+  <h4>8.3.1 Stat tiles</h4>
+  <figure>
+    <img src="figures/sec-vfstats.png" alt="Voltage and frequency stat tiles">
+    <figcaption><b>Figure 8.2</b> &mdash; System frequency, average L-L voltage, worst phase
+    imbalance and line current. Each states whether it lies inside its band.</figcaption>
+  </figure>
+  <dl class="kv">
+    <dt>Worst phase imbalance</dt><dd>Given its own headline because it is the parameter that causes the most expensive damage. Calculated as the maximum deviation of any phase from the three-phase mean, expressed as a percentage of that mean, taken across all three substations. The 2% threshold is a standard guideline.<span class="pv pv-impl">IMPL</span><span class="pv pv-dom">DOMAIN</span></dd>
+  </dl>
+
+  <h4>8.3.2 System frequency chart</h4>
+  <figure>
+    <img src="figures/sec-freqchart.png" alt="Frequency trend chart">
+    <figcaption><b>Figure 8.3</b> &mdash; Frequency over time with the 49.5 Hz and 50.5 Hz
+    statutory limits and the 50.0 Hz nominal drawn as labelled reference lines.</figcaption>
+  </figure>
+  <dl class="kv">
+    <dt>Unit</dt><dd>Hz, two decimal places.</dd>
+    <dt>Interpretation</dt><dd>Frequency is a national quantity, not a site one. It reflects whether generation matches demand across the grid. A site cannot influence it; it can only respond to it. Sustained excursion beyond the band is a grid event, not a site fault.<span class="pv pv-dom">DOMAIN</span></dd>
+  </dl>
+
+  <h4>8.3.3 Per-substation voltage charts</h4>
+  <figure>
+    <img src="figures/sec-vfcharts.png" alt="Three per-substation voltage charts">
+    <figcaption><b>Figure 8.4</b> &mdash; One chart per substation, each showing all three
+    line-to-line phase voltages against the 10.5&ndash;11.5 kV band.</figcaption>
+  </figure>
+  <dl class="kv">
+    <dt>Purpose</dt><dd>Localise a voltage problem to a specific substation rather than only knowing the site average.</dd>
+    <dt>Interpretation</dt><dd>Three traces moving together indicate a balanced supply. Traces separating indicate imbalance at that substation specifically.</dd>
+  </dl>
+
+  <h4>8.3.4 Measurements table</h4>
+  <figure>
+    <img src="figures/sec-vftable.png" alt="Per-substation measurements table">
+    <figcaption><b>Figure 8.5</b> &mdash; Per-substation electrical measurements: all three phase
+    voltages, imbalance, current, power factor and reactive power.</figcaption>
+  </figure>
+  <table>
+    <thead><tr><th style="width:26mm">Column</th><th style="width:14mm">Unit</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td>R-Y, Y-B, B-R</td><td>kV</td><td>The three line-to-line phase voltages, three decimal places.</td></tr>
+      <tr><td>Imbalance</td><td>%</td><td>Maximum phase deviation from the mean, as a percentage of the mean.</td></tr>
+      <tr><td>Current</td><td>A</td><td>Line current derived from power, voltage and power factor.</td></tr>
+      <tr><td>PF</td><td>&mdash;</td><td>Power factor at that substation, three decimals.</td></tr>
+      <tr><td>kVAr</td><td>kVAr</td><td>Reactive power drawn through that substation.</td></tr>
+      <tr><td>Status</td><td>&mdash;</td><td>Normal when voltage is in band and imbalance is below 2%; otherwise Check.</td></tr>
+    </tbody>
+  </table>
+  <p class="tbl-cap"><b>Table 8.1</b> &mdash; Measurements table columns.<span class="pv pv-impl">IMPL</span></p>
+
+  <h3>8.4 Practical use case</h3>
+  <p>A maintenance supervisor reports repeated motor failures in one zone. This screen shows the
+  substation feeding that zone running at 2.4% imbalance while the other two sit near 0.9%. That
+  points to unequal single-phase loading on that substation &mdash; a wiring distribution problem
+  rather than a motor-quality problem, and one that will keep destroying motors until the loading
+  is rebalanced.</p>
+</section>
+
+<!-- ============================================================== CHAPTER 9 -->
+<section class="chapter" id="ch9" data-title="Screen Analysis: Energy Analytics" data-num="9">
+  <div class="ch-head">
+    <span class="ch-num">Chapter 9</span>
+    <h2>Screen Analysis &mdash; Energy Analytics</h2>
+    <p class="ch-intro">The shift from power to energy &mdash; from what is happening now to what
+    has accumulated. This is the screen for cost conversations.</p>
+  </div>
+
+  <figure>
+    <img src="figures/fig-energy.png" alt="Energy Analytics screen">
+    <figcaption><b>Figure 9.1</b> &mdash; The Energy Analytics screen: stat tiles, energy mix,
+    load-duration curve, energy by group, and top consumers.</figcaption>
+  </figure>
+
+  <h3>9.1 Purpose</h3>
+  <p>To show how much energy has been consumed, how it divides between import, generation and
+  losses, how peaky the demand profile is, and which locations dominate consumption.</p>
+
+  <h3>9.2 Why this screen exists</h3>
+  <p>Electricity is billed on energy, and frequently on peak demand as well. Every other screen
+  deals in instantaneous power; this one deals in the quantities that appear on an invoice and in
+  a reduction target.<span class="pv pv-dom">DOMAIN</span></p>
+
+  <h3>9.3 Sections</h3>
+
+  <h4>9.3.1 Stat tiles</h4>
+  <figure>
+    <img src="figures/sec-eastats.png" alt="Energy analytics stat tiles">
+    <figcaption><b>Figure 9.2</b> &mdash; Energy consumed with elapsed period, average demand,
+    peak demand with its timestamp, and load factor.</figcaption>
+  </figure>
+  <dl class="kv">
+    <dt>Average demand</dt><dd>Energy consumed &divide; elapsed hours &mdash; the mean power over the period, not a mean of samples.<span class="pv pv-impl">IMPL</span></dd>
+    <dt>Load factor</dt><dd>(Average demand &divide; peak demand) &times; 100. Stated on the tile as "average &divide; peak".<span class="pv pv-impl">IMPL</span></dd>
+  </dl>
+
+  <h4>9.3.2 Energy mix</h4>
+  <figure>
+    <img src="figures/sec-eamix.png" alt="Energy mix doughnut">
+    <figcaption><b>Figure 9.3</b> &mdash; Total energy divided into grid import, solar generation
+    and distribution losses.</figcaption>
+  </figure>
+  <dl class="kv">
+    <dt>Calculation</dt><dd>Grid import = consumed &minus; solar generated; the three segments are import, solar and losses.<span class="pv pv-impl">IMPL</span></dd>
+    <dt>Interpretation</dt><dd>The losses segment is energy paid for but never used. Solar directly displaces import.</dd>
+  </dl>
+
+  <h4>9.3.3 Load-duration curve</h4>
+  <figure>
+    <img src="figures/sec-eaduration.png" alt="Load duration curve">
+    <figcaption><b>Figure 9.4</b> &mdash; Demand sorted from highest to lowest rather than by
+    time, with peak and average marked as reference lines.</figcaption>
+  </figure>
+  <dl class="kv">
+    <dt>Purpose</dt><dd>Answer a question an ordinary trend cannot: what proportion of the period is spent near peak?</dd>
+    <dt>X-axis</dt><dd>Percentage of the period, 0% to 100% &mdash; not time of day.</dd>
+    <dt>Y-axis</dt><dd>Demand in kW.</dd>
+    <dt>Interpretation</dt><dd>A steep drop at the left means peaks are brief and rare, so peak-shaving would yield large savings for little disruption. A flat curve means demand is steady and the peak charge is unavoidable without reducing base load.<span class="pv pv-dom">DOMAIN</span></dd>
+    <dt>Why this chart type</dt><dd>It is the standard instrument for peak-demand analysis in energy management, and it is the only chart on the dashboard where the x-axis is not time.</dd>
+  </dl>
+
+  <h4>9.3.4 Energy by group</h4>
+  <figure>
+    <img src="figures/sec-eabygroup.png" alt="Energy by group bars">
+    <figcaption><b>Figure 9.5</b> &mdash; Accumulated energy per asset group, ranked. The
+    generation group is labelled "(produced)" and reported positive.</figcaption>
+  </figure>
+
+  <h4>9.3.5 Top consumers</h4>
+  <figure>
+    <img src="figures/sec-eatop.png" alt="Top consumers table">
+    <figcaption><b>Figure 9.6</b> &mdash; The ten highest-consuming individual locations, with
+    each one's share of site total and its current draw.</figcaption>
+  </figure>
+  <dl class="kv">
+    <dt>Purpose</dt><dd>Identify where consumption-reduction effort produces the largest return.</dd>
+    <dt>Calculation</dt><dd>Share = point energy &divide; site energy &times; 100. Generation points are excluded.<span class="pv pv-impl">IMPL</span></dd>
+    <dt>Interpretation</dt><dd>Expect large aggregate tags (MOQ Flats, B Type Qtrs) to dominate, because each represents hundreds of dwellings. A single-unit tag appearing high in this list is the more interesting signal.</dd>
+  </dl>
+
+  <h3>9.4 Practical use case</h3>
+  <p>A facilities manager is asked to cut electricity cost by 10%. The load-duration curve shows a
+  steep left-hand drop &mdash; demand is near peak for only a small share of the period &mdash; so
+  peak-shaving is worth pursuing. Top consumers shows the two largest residential tags accounting
+  for roughly a third of site energy, so tariff or behavioural measures there will move the total
+  more than any plant-side intervention.</p>
+</section>

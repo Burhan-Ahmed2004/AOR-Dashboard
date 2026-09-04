@@ -1,0 +1,286 @@
+<!-- ============================================================== CHAPTER 5 -->
+<section class="chapter" id="ch5" data-title="Screen Analysis: Overview" data-num="5">
+  <div class="ch-head">
+    <span class="ch-num">Chapter 5</span>
+    <h2>Screen Analysis &mdash; Overview</h2>
+    <p class="ch-intro">The first of twelve screen analyses. Each follows the same structure:
+    purpose, rationale, information provided, mechanism, interpretation, and a practical use case.
+    Every major section within the screen is documented individually.</p>
+  </div>
+
+  <figure>
+    <img src="figures/fig-overview.png" alt="Overview screen">
+    <figcaption><b>Figure 5.1</b> &mdash; The Overview screen in full. Left column: KPI strip,
+    load trend, active alarms, and the four analysis panels. Right rail: single-line diagram,
+    voltage profile, secondary metrics. Full width at the foot: register data gaps.</figcaption>
+  </figure>
+
+  <h3>5.1 Purpose</h3>
+  <p>To answer one question without scrolling and without interaction: <strong>is the site healthy
+  right now?</strong> This is the screen intended to remain permanently displayed on a wall-mounted
+  monitor.</p>
+
+  <h3>5.2 Why this screen exists</h3>
+  <p>Continuous monitoring only works if the normal state is legible at a glance from across a
+  room. If an operator must read numbers or navigate to establish that nothing is wrong, the
+  monitoring is not continuous &mdash; it is periodic inspection. The Overview compresses six
+  headline electrical parameters, the alarm state, the network diagram and the supply-quality
+  trace into a single view.<span class="pv pv-int">INTERP</span></p>
+
+  <h3>5.3 Sections</h3>
+
+  <h4>5.3.1 KPI strip</h4>
+  <figure>
+    <img src="figures/sec-kpis.png" alt="Six KPI tiles">
+    <figcaption><b>Figure 5.2</b> &mdash; The six headline KPI tiles. Each carries an icon
+    medallion, the value with its unit, a label with its provenance badge, and a status line with
+    a tick or warning glyph indicating whether the parameter is within its normal band.</figcaption>
+  </figure>
+  <dl class="kv">
+    <dt>Purpose</dt><dd>Present the six parameters that together characterise the electrical state of the site.</dd>
+    <dt>Contents</dt><dd>Total Active Power (MW) &middot; Reactive Power (MVAR) &middot; Power Factor &middot; Frequency (Hz) &middot; Average Voltage L-L (kV) &middot; Energy Today (kWh/MWh).</dd>
+    <dt>Data used</dt><dd>All six read from the electrical model, which derives them from the summed real power of all monitored points.<span class="pv pv-impl">IMPL</span></dd>
+    <dt>Relationship</dt><dd>These are site-wide aggregates of the same readings broken down on Load Monitoring and analysed on Energy Analytics.</dd>
+    <dt>Interpretation</dt><dd>Four tiles carry a pass/fail indicator: power factor (green at &ge; 0.90), frequency (green within 49.5&ndash;50.5 Hz), voltage (green within 10.5&ndash;11.5 kV). If all show green, supply quality is acceptable.</dd>
+    <dt>Significance</dt><dd>These are the figures an electrical engineer asks for first. Full definitions appear in Chapter 17.</dd>
+  </dl>
+
+  <h4>5.3.2 Total load trend</h4>
+  <figure>
+    <img src="figures/sec-loadchart.png" alt="Total load trend chart">
+    <figcaption><b>Figure 5.3</b> &mdash; Site demand over the session, with the dashed grey line
+    showing typical demand for the current hour. The y-axis is zoomed to the data range rather
+    than anchored at zero, so variation of a few hundred kW on a 4,500 kW base remains visible.</figcaption>
+  </figure>
+  <dl class="kv">
+    <dt>Purpose</dt><dd>Show the shape of demand over time and whether the site is above or below its normal profile.</dd>
+    <dt>Data used</dt><dd>The site history ring buffer, holding up to 240 samples of net demand and expected demand.<span class="pv pv-impl">IMPL</span></dd>
+    <dt>Unit</dt><dd>kW on the y-axis; clock time on the x-axis.</dd>
+    <dt>Interpretation</dt><dd>The solid line tracking near the dashed line means the site is behaving normally for the time of day. A sustained gap above it is the signal worth investigating &mdash; a raw value alone cannot tell you that.</dd>
+    <dt>Significance</dt><dd>Provides the context that turns a number into a judgement.</dd>
+  </dl>
+
+  <h4>5.3.3 Active alarms</h4>
+  <figure>
+    <img src="figures/sec-alarmlist.png" alt="Active alarm panel">
+    <figcaption><b>Figure 5.4</b> &mdash; The active alarm panel. Each row carries a severity tag,
+    the affected tag and message, the location and feeding substation, the elapsed time since it
+    was raised, and an acknowledge button.</figcaption>
+  </figure>
+  <dl class="kv">
+    <dt>Purpose</dt><dd>Surface every condition currently requiring operator attention, worst first.</dd>
+    <dt>Data used</dt><dd>The alarm engine's open-episode list, sorted by severity, then by acknowledgement state, then by recency.<span class="pv pv-impl">IMPL</span></dd>
+    <dt>Interpretation</dt><dd>A <b>Critical</b> tag means consumption exceeded the alarm limit. <b>Warning</b> means the warning limit. <b>Comms</b> means the meter stopped reporting &mdash; a communications fault, not an electrical one. When empty it states so explicitly rather than showing nothing.</dd>
+    <dt>Significance</dt><dd>This panel is the operational core of the screen; everything else is context for it.</dd>
+  </dl>
+
+  <h4>5.3.4 Power distribution</h4>
+  <figure>
+    <img src="figures/sec-donut.png" alt="Power distribution doughnut">
+    <figcaption><b>Figure 5.5</b> &mdash; Demand split across the three substations plus solar
+    infeed, with the site total at the centre. Each segment is direct-labelled with its value and
+    share, so identity never depends on colour alone.</figcaption>
+  </figure>
+  <dl class="kv">
+    <dt>Purpose</dt><dd>Show how site demand divides between supply points.</dd>
+    <dt>Data used</dt><dd>Substation roll-ups from the store; solar from the generation roll-up.<span class="pv pv-impl">IMPL</span></dd>
+    <dt>Unit</dt><dd>kW and percentage of total.</dd>
+    <dt>Relationship</dt><dd>Same underlying figures as the substation boxes on the single-line diagram and the feeder bars on Power Flow.</dd>
+    <dt>Interpretation</dt><dd>A structural view rather than a diagnostic one. It is expected to be stable; a sudden change in the split means load has transferred or a substation has lost supply.</dd>
+  </dl>
+
+  <h4>5.3.5 Load by category</h4>
+  <figure>
+    <img src="figures/sec-catbars.png" alt="Load by category bars">
+    <figcaption><b>Figure 5.6</b> &mdash; The six largest asset groups by current demand. A bar
+    turns amber or red when that group holds a warning or critical alarm &mdash; colour here
+    carries alarm state, not magnitude.</figcaption>
+  </figure>
+  <dl class="kv">
+    <dt>Purpose</dt><dd>Show which categories of asset are consuming the most.</dd>
+    <dt>Data used</dt><dd>Group roll-ups, sorted descending, top six shown.<span class="pv pv-impl">IMPL</span></dd>
+    <dt>Grouping</dt><dd>Uses the register's own taxonomy &mdash; Officer Accommodation, Other Ranks Quarters, Command &amp; Admin, Medical &amp; Welfare, Water &amp; Utilities, Street &amp; Area Lighting, Vertical Transport, Outstations, Solar Generation &mdash; rather than inventing new categories.</dd>
+    <dt>Interpretation</dt><dd>Residential groups dominate, which is expected for a complex of 2,157 buildings. Rank order changing through the day is normal; a group jumping rank abruptly is not.</dd>
+  </dl>
+
+  <h4>5.3.6 Energy consumption gauge</h4>
+  <figure>
+    <img src="figures/sec-gauge.png" alt="Energy consumption gauge">
+    <figcaption><b>Figure 5.7</b> &mdash; Energy consumed this session against the amount expected
+    for the elapsed period. The tick mark on the arc is the expected value; the caption states it
+    explicitly.</figcaption>
+  </figure>
+  <dl class="kv">
+    <dt>Purpose</dt><dd>Compare accumulated energy against a reference for the same elapsed time.</dd>
+    <dt>Calculation</dt><dd>Reference = site rated demand &times; elapsed hours &times; 0.85. The register contains no consumption target, so this reference is derived rather than given.<span class="pv pv-impl">IMPL</span></dd>
+    <dt>Unit</dt><dd>kWh below 1,000; MWh above.</dd>
+    <dt>Interpretation</dt><dd>Fill beyond the tick means consumption is running ahead of expectation for the period. The arc turns amber above 85% and red above 95% of the reference.</dd>
+  </dl>
+
+  <h4>5.3.7 Energy summary</h4>
+  <figure>
+    <img src="figures/sec-energysummary.png" alt="Energy summary panel">
+    <figcaption><b>Figure 5.8</b> &mdash; Four accumulated energy figures: consumed, solar
+    generated, net import, and distribution losses.</figcaption>
+  </figure>
+  <dl class="kv">
+    <dt>Purpose</dt><dd>Give the energy balance in four lines.</dd>
+    <dt>Calculation</dt><dd>Net import = consumed &minus; solar generated. Losses accumulate at a demand-dependent fraction (Chapter 19).<span class="pv pv-impl">IMPL</span></dd>
+    <dt>Relationship</dt><dd>These four figures reappear as the doughnut segments on Energy Analytics.</dd>
+  </dl>
+
+  <h4>5.3.8 Electrical single-line diagram</h4>
+  <figure>
+    <img src="figures/sec-sld.png" alt="Single line diagram">
+    <figcaption><b>Figure 5.9</b> &mdash; The 11 kV network: grid intake, main bus, the three
+    substations with live load, current, power factor and loading bar, and the solar infeed on a
+    reserved right-hand branch. The note beneath states that no generators or 132 kV intake exist
+    in the register.</figcaption>
+  </figure>
+  <dl class="kv">
+    <dt>Purpose</dt><dd>Present the network in the form an electrical engineer already thinks in, so no mental translation from a generic chart is required.</dd>
+    <dt>Data used</dt><dd>Topology and transformer counts from the register; live load, current and power factor from the electrical model.<span class="pv pv-impl">IMPL</span></dd>
+    <dt>Status encoding</dt><dd>A substation box outlines amber or red when any point it feeds holds an alarm &mdash; linking the diagram directly to the alarm list.</dd>
+    <dt>Interpretation</dt><dd>Green squares are the VCBs recorded in the register. The loading bar under each substation shows demand against installed transformer capacity.</dd>
+    <dt>Significance</dt><dd>The only screen element that shows how the plant is actually connected.</dd>
+  </dl>
+
+  <h4>5.3.9 Voltage profile</h4>
+  <figure>
+    <img src="figures/sec-voltprofile.png" alt="Three-phase voltage profile">
+    <figcaption><b>Figure 5.10</b> &mdash; All three line-to-line phase voltages over time, with
+    the 10.5 kV and 11.5 kV statutory limits drawn as red dashed reference lines.</figcaption>
+  </figure>
+  <dl class="kv">
+    <dt>Purpose</dt><dd>Show supply quality alongside supply quantity.</dd>
+    <dt>Unit</dt><dd>kV, two decimal places.</dd>
+    <dt>Interpretation</dt><dd>Three lines tracking closely together is healthy. Lines separating indicates phase imbalance; the full analysis is on the Voltage &amp; Frequency screen.</dd>
+  </dl>
+
+  <h4>5.3.10 Secondary metric tiles</h4>
+  <figure>
+    <img src="figures/sec-metrics.png" alt="Six secondary metric tiles">
+    <figcaption><b>Figure 5.11</b> &mdash; Six secondary metrics. Note the provenance badges:
+    connected capacity is <b>REG</b> because it derives from register transformer data; the other
+    five are <b>SIM</b>.</figcaption>
+  </figure>
+  <dl class="kv">
+    <dt>Contents</dt><dd>CO&#8322; avoided (t) &middot; distribution losses (kWh) &middot; system efficiency (%) &middot; connected capacity (MW) &middot; max demand (MW) &middot; peak current (A).</dd>
+    <dt>Purpose</dt><dd>Carry the figures that matter periodically but do not warrant permanent headline status.</dd>
+  </dl>
+
+  <h4>5.3.11 Register data gaps</h4>
+  <figure>
+    <img src="figures/sec-gaps.png" alt="Register data gaps panel">
+    <figcaption><b>Figure 5.12</b> &mdash; Five documented discrepancies found while reconciling
+    the register, displayed on the operational screen rather than confined to documentation.</figcaption>
+  </figure>
+  <dl class="kv">
+    <dt>Purpose</dt><dd>Make the limits of the underlying data visible at the point of use.</dd>
+    <dt>Contents</dt><dd>The tube-well count discrepancy; the assumed per-substation transformer allocation; the absence of any metered consumption; the unstated feeder allocation; and the assumed circuit splits for lighting, pumps and vertical transport.<span class="pv pv-impl">IMPL</span></dd>
+    <dt>Significance</dt><dd>An unusual inclusion. Its effect is that a reader cannot mistake an assumption for a measurement without having been told.</dd>
+  </dl>
+
+  <h3>5.4 How it works</h3>
+  <p>All Overview content is rendered by <code>src/overview.js</code>, called once per second from
+  the render loop while this screen is displayed. Values are read from the store, the electrical
+  model and the alarm engine; the screen performs no data acquisition of its own. DOM writes are
+  made only where a value has changed, so scroll position and keyboard focus survive updates.<span class="pv pv-impl">IMPL</span></p>
+
+  <h3>5.5 How to interpret it</h3>
+  <ol class="tight">
+    <li>Check the four status indicators in the KPI strip. Green across means supply quality is acceptable.</li>
+    <li>Check the alarm panel. Empty means no location is over limit.</li>
+    <li>Glance at the load trend &mdash; is the solid line near the dashed one?</li>
+    <li>Glance at the single-line diagram &mdash; are all three substation boxes outlined neutrally?</li>
+  </ol>
+  <p>If all four checks pass, no further inspection is warranted.</p>
+
+  <h3>5.6 Practical use case</h3>
+  <p>An operator on shift notices the alarm panel now shows one amber entry: <em>ADM-TWR-C6C7 &mdash;
+  consumption 267 kW exceeds the 246 kW warning limit by 9%</em>. Glancing at the single-line
+  diagram, the NHQ substation box is outlined amber, confirming the affected load sits on that
+  substation. The KPI strip still shows frequency and voltage normal, so this is a load problem
+  rather than a supply problem. The operator acknowledges the alarm and moves to Load Monitoring
+  to examine the tower's trend.</p>
+</section>
+
+<!-- ============================================================== CHAPTER 6 -->
+<section class="chapter" id="ch6" data-title="Screen Analysis: Power Flow" data-num="6">
+  <div class="ch-head">
+    <span class="ch-num">Chapter 6</span>
+    <h2>Screen Analysis &mdash; Power Flow</h2>
+    <p class="ch-intro">Where the electricity goes, traced from intake to consuming group.</p>
+  </div>
+
+  <figure>
+    <img src="figures/fig-flow.png" alt="Power Flow screen">
+    <figcaption><b>Figure 6.1</b> &mdash; The Power Flow screen: four stat tiles, the flow
+    diagram, and feeder loading.</figcaption>
+  </figure>
+
+  <h3>6.1 Purpose</h3>
+  <p>To show the distribution of power from its sources, through the 11 kV bus and the three
+  substations, to the asset groups that consume it &mdash; with quantities represented
+  proportionally rather than only stated numerically.</p>
+
+  <h3>6.2 Why this screen exists</h3>
+  <p>A table of group consumption tells you the numbers but not the structure. A flow diagram shows
+  both simultaneously: which substation feeds which groups, and how much of the total each path
+  carries. For explaining the site to someone unfamiliar with it, and for narrowing a fault to a
+  supply path, the structural view is faster than any table.<span class="pv pv-int">INTERP</span></p>
+
+  <h3>6.3 Sections</h3>
+
+  <h4>6.3.1 Stat tiles</h4>
+  <figure>
+    <img src="figures/sec-flowstats.png" alt="Power flow stat tiles">
+    <figcaption><b>Figure 6.2</b> &mdash; Total demand, solar contribution, estimated losses and
+    delivery efficiency.</figcaption>
+  </figure>
+  <dl class="kv">
+    <dt>Purpose</dt><dd>Quantify the flow in four figures before the diagram is read.</dd>
+    <dt>Calculation</dt><dd>Losses = total demand &times; (100 &minus; efficiency) &divide; 100. Efficiency derives from the demand-dependent loss fraction in the electrical model.<span class="pv pv-impl">IMPL</span></dd>
+    <dt>Unit</dt><dd>MW for demand and solar, kW for losses, percent for efficiency.</dd>
+  </dl>
+
+  <h4>6.3.2 Flow diagram</h4>
+  <figure>
+    <img src="figures/sec-flowdiagram.png" alt="Power flow Sankey diagram">
+    <figcaption><b>Figure 6.3</b> &mdash; The flow diagram. Four columns left to right: source,
+    main 11 kV bus, substation, load group. Ribbon thickness is proportional to the power carried;
+    ribbons entering the load groups are drawn in a second hue so the final hop is distinguishable.</figcaption>
+  </figure>
+  <dl class="kv">
+    <dt>Purpose</dt><dd>Represent power distribution as proportional flow.</dd>
+    <dt>Data used</dt><dd>Sources from site load and generation; substation and group values from store roll-ups; each substation links only to groups that actually contain points fed by it.<span class="pv pv-impl">IMPL</span></dd>
+    <dt>Visualisation logic</dt><dd>Ribbon thickness = (value &divide; total input) &times; 34 px, with a 1.5 px floor so small flows remain visible.<span class="pv pv-impl">IMPL</span></dd>
+    <dt>Interpretation</dt><dd>Follow any ribbon from left to right to see the complete path. Thickness comparison between ribbons is the intended reading; exact values are labelled on each node.</dd>
+    <dt>Significance</dt><dd>Makes the dominance of residential load immediately apparent without arithmetic.</dd>
+  </dl>
+
+  <h4>6.3.3 Feeder loading</h4>
+  <figure>
+    <img src="figures/sec-flowfeeders.png" alt="Feeder loading bars">
+    <figcaption><b>Figure 6.4</b> &mdash; Each of the three feeders as a percentage of installed
+    transformer capacity, with the absolute load and capacity stated.</figcaption>
+  </figure>
+  <dl class="kv">
+    <dt>Purpose</dt><dd>Show how hard each feeder is working relative to what it can carry.</dd>
+    <dt>Calculation</dt><dd>Loading % = feeder load &divide; substation capacity &times; 100, where capacity = installed kVA &times; 0.9.<span class="pv pv-impl">IMPL</span></dd>
+    <dt>Status</dt><dd>Amber above 80%, red above 90%.</dd>
+    <dt>Interpretation</dt><dd>Typical values sit between 20% and 45%, which is normal distribution-transformer loading. Sustained values above 80% indicate a capacity constraint.</dd>
+  </dl>
+
+  <h3>6.4 How to interpret it</h3>
+  <p>Read left to right. The two source nodes should sum to the bus figure. Substation ribbons
+  should be proportionate to the substation loads shown elsewhere. Any substation whose box is
+  outlined amber or red holds an alarm on one of its loads.</p>
+
+  <h3>6.5 Practical use case</h3>
+  <p>A planner is asked whether a new accommodation block can be fed from the ARC substation. The
+  feeder bars show ARC running at roughly 20% of its 2,880 kW capacity &mdash; approximately
+  2,300 kW of headroom. The flow diagram confirms ARC currently feeds the water, lighting and
+  vertical-transport groups, so the new block would introduce a residential profile onto a feeder
+  that presently carries none, changing its daily shape.</p>
+</section>

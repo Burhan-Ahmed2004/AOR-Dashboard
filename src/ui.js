@@ -98,6 +98,7 @@ export function createUi(ctx) {
   let siteChart = null;
   let drawerChart = null;
   let tableBusy = false; // pointer or focus is inside the point table
+  let lastTrigger = null; // element that opened the detail drawer
 
   // ------------------------------------------------------------------ static
   function mountStatic() {
@@ -192,6 +193,11 @@ export function createUi(ctx) {
         }
       });
     }
+
+    // The table arrives sorted by severity; announce that to assistive tech
+    // rather than only marking a column once the user clicks one.
+    const defaultTh = document.querySelector(`#pointTable th[data-sort="${state.sortKey}"]`);
+    if (defaultTh) defaultTh.setAttribute('aria-sort', state.sortDir === 'asc' ? 'ascending' : 'descending');
 
     wireControls();
     applyFilters();
@@ -352,10 +358,17 @@ export function createUi(ctx) {
       const c = typeof x === 'string' ? x.localeCompare(y) : (x ?? 0) - (y ?? 0);
       return c * dir;
     });
+    // Re-appending rows MOVES them in the DOM, and moving a focused element
+    // drops focus. The tableBusy flag suppresses most re-sorts, but it cannot
+    // cover every path (focus restored from the drawer, for one), so preserve
+    // focus explicitly around the reorder.
     const body = $('pointBody');
+    const active = document.activeElement;
+    const hadFocus = active && body.contains(active);
     const frag = document.createDocumentFragment();
     for (const v of views) frag.append(rowRefs.get(v.id).tr);
     body.append(frag);
+    if (hadFocus && document.activeElement !== active) active.focus({ preventScroll: true });
   }
 
   // --------------------------------------------------------------- main tick
@@ -559,6 +572,14 @@ export function createUi(ctx) {
 
   // ------------------------------------------------------------------ drawer
   function openDrawer(id) {
+    // Remember what opened the drawer so focus can go back there on close.
+    // A click does not always leave the row focused, so fall back to the row
+    // itself — closing should always return the user to the row they opened.
+    const active = document.activeElement;
+    lastTrigger =
+      active && active !== document.body && active !== document.documentElement
+        ? active
+        : rowRefs.get(id)?.tr || null;
     state.selected = id;
     const p = points.find((x) => x.id === id);
     if (!p) return;
@@ -587,15 +608,40 @@ export function createUi(ctx) {
     $('drawerClose').addEventListener('click', closeDrawer);
     drawerChart = createTrendChart($('drawerChart'), { height: 190, label: 'Measured' });
     $('drawerClose').focus();
+    d.addEventListener('keydown', trapTab);
     updateDrawer();
+  }
+
+  /** Keep Tab inside the dialog — aria-modal="true" asserts this, so honour it. */
+  function trapTab(e) {
+    if (e.key !== 'Tab') return;
+    const focusable = $('drawer').querySelectorAll(
+      'button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
   }
 
   function closeDrawer() {
     state.selected = null;
-    $('drawer').hidden = true;
+    const d = $('drawer');
+    d.removeEventListener('keydown', trapTab);
+    d.hidden = true;
     $('scrim').hidden = true;
     if (drawerChart) drawerChart.destroy();
     drawerChart = null;
+    // Return focus to the row that opened it, so keyboard users are not
+    // dropped back at the top of the document.
+    if (lastTrigger && document.body.contains(lastTrigger)) lastTrigger.focus();
+    lastTrigger = null;
   }
 
   function updateDrawer() {

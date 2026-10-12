@@ -189,7 +189,7 @@ export function createTowerModel(register, store, options = {}) {
   }
 
   // -------------------------------------------------------------- events
-  function raise(tw, kind, severity, title, detail, sourceId) {
+  function raise(tw, kind, severity, title, detail, sourceId, now = Date.now()) {
     // De-duplication: one open event per source. A continuously active
     // condition must not produce a new entry on every tick.
     const open = tw.events.find((e) => e.sourceId === sourceId && !e.clearedAt);
@@ -204,7 +204,7 @@ export function createTowerModel(register, store, options = {}) {
       title,
       detail,
       sourceId,
-      raisedAt: Date.now(),
+      raisedAt: now,
       clearedAt: null,
     };
     tw.events.unshift(ev);
@@ -212,9 +212,9 @@ export function createTowerModel(register, store, options = {}) {
     return ev;
   }
 
-  function clear(tw, sourceId) {
+  function clear(tw, sourceId, now = Date.now()) {
     const open = tw.events.find((e) => e.sourceId === sourceId && !e.clearedAt);
-    if (open) open.clearedAt = Date.now();
+    if (open) open.clearedAt = now;
   }
 
   // ------------------------------------------------------- demo sensor tick
@@ -225,7 +225,7 @@ export function createTowerModel(register, store, options = {}) {
       s.state = STATE.NORMAL;
       s.until = 0;
       s.since = 0;
-      clear(tw, s.id);
+      clear(tw, s.id, now);
       return;
     }
     if (s.state !== STATE.NORMAL) return;
@@ -235,17 +235,17 @@ export function createTowerModel(register, store, options = {}) {
       s.state = STATE.ALERT;
       s.since = now;
       s.until = now + clearMs;
-      raise(tw, kind, severity, alertLabel, `${s.label} (${s.floor})`, s.id);
+      raise(tw, kind, severity, alertLabel, `${s.label} (${s.floor})`, s.id, now);
     } else if (r < chance + cfg.sensorFaultChance) {
       s.state = STATE.FAULT;
       s.since = now;
       s.until = now + cfg.sensorFaultMs;
-      raise(tw, 'sensor', 'warning', 'Sensor fault', `${s.id} — ${s.label}`, s.id);
+      raise(tw, 'sensor', 'warning', 'Sensor fault', `${s.id} — ${s.label}`, s.id, now);
     } else if (r < chance + cfg.sensorFaultChance + cfg.sensorOfflineChance) {
       s.state = STATE.OFFLINE;
       s.since = now;
       s.until = now + cfg.sensorOfflineMs;
-      raise(tw, 'sensor', 'warning', 'Sensor offline', `${s.id} — ${s.label}`, s.id);
+      raise(tw, 'sensor', 'warning', 'Sensor offline', `${s.id} — ${s.label}`, s.id, now);
     }
   }
 
@@ -257,7 +257,7 @@ export function createTowerModel(register, store, options = {}) {
       lift.state = LIFT_STATE.IDLE;
       lift.direction = 'stationary';
       lift.until = 0;
-      clear(tw, lift.id);
+      clear(tw, lift.id, now);
     }
 
     if (lift.state === LIFT_STATE.FAULT || lift.state === LIFT_STATE.OUT_OF_SERVICE) return;
@@ -274,7 +274,8 @@ export function createTowerModel(register, store, options = {}) {
         'warning',
         lift.state === LIFT_STATE.FAULT ? 'Lift fault' : 'Lift out of service',
         `${lift.name} — floor ${lift.floor}`,
-        lift.id
+        lift.id,
+        now
       );
       return;
     }
@@ -331,17 +332,16 @@ export function createTowerModel(register, store, options = {}) {
    * development and acceptance testing. Exposed to the UI behind a control
    * that is explicitly labelled as demo-only.
    */
-  function triggerDemo(towerId, kind) {
+  function triggerDemo(towerId, kind, now = Date.now()) {
     const tw = towers.get(towerId);
     if (!tw) return null;
-    const now = Date.now();
     if (kind === 'fire') {
       const s = pick(rand, tw.fireSensors.filter((x) => x.state === STATE.NORMAL)) || tw.fireSensors[0];
       s.state = STATE.ALERT;
       s.since = now;
       s.until = now + cfg.fireClearMs;
       s.lastUpdate = now;
-      return raise(tw, 'fire', 'critical', 'FIRE DETECTED', `${s.label} (${s.floor})`, s.id);
+      return raise(tw, 'fire', 'critical', 'FIRE DETECTED', `${s.label} (${s.floor})`, s.id, now);
     }
     if (kind === 'leak') {
       const s = pick(rand, tw.leakSensors.filter((x) => x.state === STATE.NORMAL)) || tw.leakSensors[0];
@@ -349,7 +349,7 @@ export function createTowerModel(register, store, options = {}) {
       s.since = now;
       s.until = now + cfg.leakClearMs;
       s.lastUpdate = now;
-      return raise(tw, 'leak', 'critical', 'Water leak detected', `${s.label} (${s.floor})`, s.id);
+      return raise(tw, 'leak', 'critical', 'Water leak detected', `${s.label} (${s.floor})`, s.id, now);
     }
     if (kind === 'lift') {
       const l = tw.lifts.find((x) => x.state !== LIFT_STATE.FAULT) || tw.lifts[0];
@@ -359,16 +359,16 @@ export function createTowerModel(register, store, options = {}) {
       l.since = now;
       l.until = now + cfg.liftFaultMs;
       l.lastUpdate = now;
-      return raise(tw, 'lift', 'warning', 'Lift fault', `${l.name} — floor ${l.floor}`, l.id);
+      return raise(tw, 'lift', 'warning', 'Lift fault', `${l.name} — floor ${l.floor}`, l.id, now);
     }
     if (kind === 'reset') {
       for (const s of [...tw.leakSensors, ...tw.fireSensors]) {
         s.state = STATE.NORMAL; s.until = 0; s.since = 0;
-        clear(tw, s.id);
+        clear(tw, s.id, now);
       }
       for (const l of tw.lifts) {
         if (l.state === LIFT_STATE.FAULT || l.state === LIFT_STATE.OUT_OF_SERVICE) {
-          l.state = LIFT_STATE.IDLE; l.until = 0; clear(tw, l.id);
+          l.state = LIFT_STATE.IDLE; l.until = 0; clear(tw, l.id, now);
         }
       }
       return null;

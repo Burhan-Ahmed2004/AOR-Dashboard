@@ -68,8 +68,9 @@ ok('alarm panel starts inactive', s1.fire.panel.state === ALARM_PANEL.INACTIVE);
 ok('no events at start', s1.events.length === 0 && s2.events.length === 0);
 
 // --- 4. TOWER ISOLATION ---------------------------------------------------
-m.triggerDemo('T1', 'fire');
-m.update(Date.now());
+let t0 = Date.now();
+m.triggerDemo('T1', 'fire', t0);
+m.update(t0);
 const a1 = m.snapshot('T1'), a2 = m.snapshot('T2');
 ok('fire in T1 raises T1 fire status', a1.fire.status === STATE.ALERT);
 ok('fire in T1 activates the T1 alarm panel', a1.fire.panel.state === ALARM_PANEL.ACTIVE);
@@ -81,7 +82,7 @@ ok('every event carries its own tower id', a1.events.every((e) => e.towerId === 
 
 // --- 5. DE-DUPLICATION of a continuously active condition ----------------
 // The condition stays active across many ticks; it must not re-raise.
-let t = Date.now();
+let t = t0;
 for (let i = 0; i < 60; i++) { t += 1000; m.update(t); }
 const held = m.snapshot('T1', t);
 ok('a continuously active fire stays active', held.fire.status === STATE.ALERT);
@@ -98,14 +99,14 @@ ok('alarm panel returns to inactive', cleared.fire.panel.state === ALARM_PANEL.I
 ok('the event is closed rather than deleted', cleared.events.some((e) => e.kind === 'fire' && e.clearedAt));
 
 // --- 7. leak and lift paths ----------------------------------------------
-m.triggerDemo('T2', 'leak');
+m.triggerDemo('T2', 'leak', t);
 m.update(t);
 const leak = m.snapshot('T2', t);
 ok('leak raises on T2', leak.leak.status === STATE.ALERT);
 ok('leak reports a location and floor', leak.leak.alerting[0].label && leak.leak.alerting[0].floor);
 ok('ISOLATION: T1 leak unaffected', m.snapshot('T1', t).leak.status === STATE.NORMAL);
 
-m.triggerDemo('T2', 'lift');
+m.triggerDemo('T2', 'lift', t);
 m.update(t);
 const lifts = m.snapshot('T2', t);
 ok('a lift fault is reported', lifts.lifts.some((l) => l.state === LIFT_STATE.FAULT));
@@ -114,7 +115,7 @@ ok('faulty lift reduces availability',
 
 // --- 8. summary severity --------------------------------------------------
 ok('summary marks T2 critical while a leak is active', m.summary('T2', t).severity === 'critical');
-m.triggerDemo('T2', 'reset');
+m.triggerDemo('T2', 'reset', t);
 m.update(t);
 ok('reset returns T2 to normal', m.summary('T2', t).severity === 'normal', m.summary('T2', t).severity);
 

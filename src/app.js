@@ -19,6 +19,8 @@ import { createOverview } from './overview.js';
 import { createElectricalModel } from './electrical.js';
 import { createSwitchgearModel } from './switchgear.js';
 import { createPages } from './pages.js';
+import { createTowerModel } from './towers.js';
+import { createTowerView, renderTowerSelector } from './tower-view.js';
 import { isDaylight } from './simulator.js';
 import { dateTime } from './format.js';
 
@@ -46,6 +48,9 @@ const engine = createAlarmEngine({
 });
 const electrical = createElectricalModel(register.SUBSTATIONS);
 const switchgear = createSwitchgearModel(register);
+// Tower monitoring data layer. Kept out of the view files so a real IoT
+// source can replace the demo adapter without touching any rendering code.
+const towerModel = createTowerModel(register, store);
 
 /**
  * Pick a data source by ASKING whether a SCADA backend is there, rather than
@@ -85,6 +90,7 @@ const ctx = {
   engine,
   electrical,
   switchgear,
+  towerModel,
   source,
   register,
 };
@@ -92,14 +98,18 @@ const ctx = {
 const ui = createUi(ctx);
 const overview = createOverview(ctx);
 const pages = createPages(ctx);
+const towerView = createTowerView(ctx);
 
 ui.mountStatic();
 overview.mount();
 pages.mount();
+towerView.mount();
 
 // ---------------------------------------------------------------------- nav
 const VIEWS = {
   overview: 'view-overview',
+  tower1: 'view-tower',
+  tower2: 'view-tower',
   flow: 'view-flow',
   load: 'view-load',
   voltage: 'view-voltage',
@@ -136,6 +146,10 @@ function setView(name) {
     if (btn.dataset.view === name) btn.setAttribute('aria-current', 'page');
     else btn.removeAttribute('aria-current');
   }
+  // Tower routes share one container and one renderer; the id selects the data.
+  if (name === 'tower1' || name === 'tower2') {
+    towerView.setTower(name === 'tower1' ? 'T1' : 'T2');
+  }
   currentView = name;
   try { localStorage.setItem('pld-view', name); } catch {}
   render();
@@ -145,6 +159,13 @@ for (const btn of document.querySelectorAll('#navList button')) {
   btn.addEventListener('click', () => setView(btn.dataset.view));
 }
 document.getElementById('bellBtn').addEventListener('click', () => setView('alarms'));
+
+// Back to the main dashboard, and the tower switcher inside the tower view.
+document.getElementById('twBack').addEventListener('click', () => setView('overview'));
+document.getElementById('twSwitch').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-tower]');
+  if (btn) setView(btn.dataset.tower === 'T1' ? 'tower1' : 'tower2');
+});
 
 // ------------------------------------------------------------------ feed
 let lastDaylight = isDaylight();
@@ -176,10 +197,19 @@ function render() {
     day: 'numeric', month: 'short', year: 'numeric',
   });
 
+  towerModel.update(now);
+
   ui.update();
   // Only the page on screen is rendered; the others are not in the DOM flow.
-  if (currentView === 'overview') overview.update();
-  else if (pages.has(currentView)) pages.update(currentView);
+  if (currentView === 'tower1' || currentView === 'tower2') {
+    towerView.render(currentView === 'tower1' ? 'T1' : 'T2');
+  } else if (currentView === 'overview') {
+    overview.update();
+    renderTowerSelector(document.getElementById('towerSelector'), towerModel, (id) =>
+      setView(id === 'T1' ? 'tower1' : 'tower2')
+    );
+  }
+  if (pages.has(currentView)) pages.update(currentView);
   ui.renderConnection(source.status);
 }
 
@@ -219,4 +249,4 @@ function substationSeverity(subId) {
   return worst;
 }
 
-window.__power = { register, store, engine, electrical, switchgear, source, ui, overview, pages, setView };
+window.__power = { register, store, engine, electrical, switchgear, towerModel, source, ui, overview, pages, towerView, setView };

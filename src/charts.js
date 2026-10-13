@@ -271,6 +271,13 @@ export function createTrendChart(container, options = {}) {
       state.refs = refs;
       draw();
     },
+    /** Re-fit the plot to a panel of fixed height (control-room wall layout). */
+    setHeight(h) {
+      const next = Math.max(70, Math.round(h));
+      if (next === opts.height) return;
+      opts.height = next;
+      draw();
+    },
     destroy() {
       ro.disconnect();
     },

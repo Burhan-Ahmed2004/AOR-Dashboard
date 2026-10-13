@@ -147,9 +147,12 @@ function setView(name) {
     else btn.removeAttribute('aria-current');
   }
   // Tower routes share one container and one renderer; the id selects the data.
-  if (name === 'tower1' || name === 'tower2') {
-    towerView.setTower(name === 'tower1' ? 'T1' : 'T2');
-  }
+  const isTower = name === 'tower1' || name === 'tower2';
+  if (isTower) towerView.setTower(name === 'tower1' ? 'T1' : 'T2');
+  // Wall mode pins the tower board to exactly one viewport so a control-room
+  // screen never has to be scrolled. The CSS only honours it on a display big
+  // enough to carry four quadrants; everywhere else the page scrolls as usual.
+  document.body.classList.toggle('wall-mode', isTower);
   currentView = name;
   try { localStorage.setItem('pld-view', name); } catch {}
   render();

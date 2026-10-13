@@ -761,24 +761,6 @@ body {
 .tstat-l{font-size:.68rem;color:var(--ink-2);margin-top:2px;line-height:1.3}
 .tstat-s{font-size:.63rem;color:var(--muted);margin-top:1px}
 
-/* ----------------------------------------------------------------- lifts */
-.lifts{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin-top:10px}
-.lift{background:var(--surface-2);border:1px solid var(--hairline);border-left:3px solid var(--st-good);
-  border-radius:9px;padding:10px 12px;min-width:0}
-.lift--warn{border-left-color:var(--st-warning)}
-.lift--crit{border-left-color:var(--st-critical);
-  background:color-mix(in oklab,var(--st-critical) 9%,var(--surface-2))}
-.lift--idle{border-left-color:var(--muted)}
-.lift-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.lift-name{font-size:.82rem;font-weight:700}
-.lift-floor{font-size:1.5rem;font-weight:700;letter-spacing:-.02em;margin-top:5px;
-  display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
-.lift-floor-l{font-size:.62rem;color:var(--muted);font-weight:400;text-transform:uppercase;letter-spacing:.05em}
-.lift-dir{font-size:.68rem;color:var(--ink-2);font-weight:500;display:inline-flex;
-  align-items:center;gap:3px;margin-left:auto}
-.lift-meta{display:flex;justify-content:space-between;gap:8px;font-size:.62rem;
-  color:var(--muted);margin-top:5px;flex-wrap:wrap}
-
 /* ---------------------------------------------------------------- events */
 .tevents{display:grid;gap:6px}
 .tevent{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;
@@ -795,6 +777,237 @@ body {
 .tempty{font-size:.76rem;color:var(--muted);display:flex;align-items:center;gap:7px;padding:10px 2px}
 
 /* --------------------------------------------------------- demo controls */
+/* ====================================================== CONTROL-ROOM WALL ===
+   The tower board is meant to be read from across a control room, so on a
+   large display it fills exactly one viewport and never scrolls. Four
+   quadrants in reading order:  1 electricity   2 lifts
+                                3 fire          4 water
+   Below the wall breakpoint the same four panels stack in that same order and
+   the page scrolls normally, so tablets and phones stay usable.
+   ========================================================================= */
+.view--wall{display:flex;flex-direction:column;align-content:stretch}
+.tw-grid{display:grid;gap:var(--gap);min-width:0;min-height:0;flex:1 1 auto;
+  grid-template-columns:repeat(2,minmax(0,1fr))}
+.tw-q{display:grid;grid-template-rows:auto minmax(0,1fr);gap:9px;
+  min-width:0;min-height:0;padding:11px 13px}
+.tw-q-head{display:flex;align-items:flex-start;gap:9px;min-width:0}
+.tw-q-head>div{min-width:0}
+.tw-q-head>div:nth-of-type(1){flex:1 1 auto}
+.tw-q-n{flex:none;width:19px;height:19px;border-radius:5px;background:var(--surface-3);
+  color:var(--ink-2);font-size:.66rem;font-weight:800;display:grid;place-items:center;margin-top:1px}
+.card--fire .tw-q-n{background:color-mix(in oklab,var(--st-critical) 22%,var(--surface-3));
+  color:var(--st-critical)}
+.tw-q-aside{flex:none;text-align:right}
+.tw-q-aside .tbig-sub{font-size:.6rem;max-width:22ch}
+.tw-q-body{min-width:0;min-height:0;overflow:auto}
+.tw-q .card-sub{line-height:1.35}
+
+@media (min-width:1180px) and (min-height:680px){
+  body.wall-mode{overflow:hidden}
+  body.wall-mode .shell{height:100vh;min-height:0}
+  body.wall-mode .main{height:100vh;min-height:0;overflow:hidden}
+  body.wall-mode #view-tower{flex:1 1 auto;min-height:0;overflow:hidden}
+  .view--wall .tw-grid{grid-template-rows:repeat(2,minmax(0,1fr))}
+  /* Clamp the long provenance sub-lines on the wall. The badges inside each
+     panel and the demo-controls note still carry the caveat in full. */
+  .view--wall .tw-q>.tw-q-head .card-sub{
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+}
+@media (max-width:1179px),(max-height:679px){
+  .tw-grid{grid-template-columns:minmax(0,1fr)}
+  .tw-q-body{overflow:visible}
+  .tw-q{grid-template-rows:auto auto}
+}
+
+/* ------------------------------------------------- 1. electricity panel */
+.tw-elec{display:grid;gap:9px;grid-template-rows:auto auto minmax(0,1fr);align-content:start}
+.tw-elec-low{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);
+  gap:var(--gap);min-width:0;min-height:0}
+@media (max-width:620px){.tw-elec-low{grid-template-columns:minmax(0,1fr)}}
+.tw-chartbox{min-width:0;min-height:0;display:grid;grid-template-rows:minmax(0,1fr) auto}
+#twElecChart{min-height:0;min-width:0}
+.loadbar-head{display:flex;justify-content:space-between;gap:10px;font-size:.67rem;
+  color:var(--ink-2);margin-bottom:4px}
+.loadbar-pct{font-weight:700;font-variant-numeric:tabular-nums}
+.loadbar-pct--ok{color:var(--st-good)}
+.loadbar-pct--warn{color:var(--st-warning)}
+.loadbar-pct--crit{color:var(--st-critical)}
+.loadbar{position:relative;height:9px;border-radius:5px;background:var(--surface-3);overflow:hidden}
+.loadbar-fill{height:100%;border-radius:5px;background:var(--st-good);transition:width .4s ease}
+.loadbar-fill--warn{background:var(--st-warning)}
+.loadbar-fill--crit{background:var(--st-critical)}
+.loadbar-tick{position:absolute;top:0;bottom:0;width:1px;background:var(--surface-1);opacity:.9}
+.loadbar-tick--hi{background:var(--st-critical);opacity:.6}
+
+/* ------------------------------------------------------ 2. lift shafts */
+.shafts{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);
+  gap:10px;min-height:0;height:100%}
+@media (max-width:480px){
+  .shafts{grid-auto-flow:row;grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+.shaft{display:grid;grid-template-rows:auto minmax(54px,1fr) auto auto auto;gap:4px;
+  justify-items:center;min-width:0;min-height:0}
+.shaft-floor{font-size:1.4rem;font-weight:700;letter-spacing:-.02em;line-height:1.05;
+  font-variant-numeric:tabular-nums}
+.shaft--crit .shaft-floor{color:var(--st-critical)}
+.shaft--warn .shaft-floor{color:var(--st-warning)}
+.shaft-track{position:relative;width:30px;min-height:54px;height:100%;border-radius:6px;
+  background:var(--surface-3);border:1px solid var(--hairline);
+  background-image:repeating-linear-gradient(to top,transparent 0 11px,var(--grid) 11px 12px)}
+.shaft-car{position:absolute;left:3px;right:3px;height:16px;margin-bottom:-8px;border-radius:4px;
+  display:grid;place-items:center;transition:bottom .5s ease;box-shadow:var(--elev-1);
+  background:var(--st-good);color:#fff}
+.shaft-car--idle{background:var(--ink-2);color:var(--surface-1)}
+.shaft-car--warn{background:var(--st-warning);color:#231a00}
+.shaft-car--crit{background:var(--st-critical);color:#fff}
+.shaft-name{font-size:.72rem;font-weight:700;text-align:center}
+.shaft .tstat{font-size:.62rem;padding:1px 6px 1px 5px}
+.shaft-meta{font-size:.6rem;color:var(--muted);text-align:center;line-height:1.3}
+
+/* ------------------------------------- 3. fire annunciator + zone stack */
+.tw-fire{display:grid;grid-template-columns:minmax(155px,0.8fr) minmax(0,1.2fr);
+  gap:var(--gap);min-width:0;min-height:0}
+@media (max-width:620px){.tw-fire{grid-template-columns:minmax(0,1fr)}}
+.tw-fire-l{display:grid;gap:10px;align-content:start;min-width:0}
+.annun{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;padding:9px 10px;
+  border-radius:9px;background:var(--surface-3);border:1px solid var(--hairline)}
+.lamp{display:flex;align-items:center;gap:6px;min-width:0;font-size:.63rem;font-weight:700;
+  color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.lamp-led{flex:none;width:11px;height:11px;border-radius:50%;background:var(--surface-1);
+  border:1px solid var(--baseline)}
+.lamp-w{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lamp.is-on{color:var(--ink)}
+.lamp--alarm.is-on{color:var(--st-critical)}
+.lamp--alarm.is-on .lamp-led{background:var(--st-critical);border-color:var(--st-critical);
+  box-shadow:0 0 0 3px color-mix(in oklab,var(--st-critical) 30%,transparent)}
+.lamp--fault.is-on .lamp-led{background:var(--st-warning);border-color:var(--st-warning);
+  box-shadow:0 0 0 3px color-mix(in oklab,var(--st-warning) 30%,transparent)}
+.lamp--super.is-on .lamp-led{background:var(--st-serious);border-color:var(--st-serious);
+  box-shadow:0 0 0 3px color-mix(in oklab,var(--st-serious) 30%,transparent)}
+.lamp--norm.is-on .lamp-led{background:var(--st-good);border-color:var(--st-good);
+  box-shadow:0 0 0 3px color-mix(in oklab,var(--st-good) 28%,transparent)}
+.annun-meta{display:flex;flex-wrap:wrap;gap:3px 10px;font-size:.61rem;color:var(--muted);margin-top:6px}
+
+.tallybar{display:flex;height:10px;border-radius:5px;overflow:hidden;background:var(--surface-3);gap:1px}
+.tallybar-seg{display:block;height:100%}
+.tallybar-seg--ok{background:var(--st-good)}
+.tallybar-seg--warn{background:var(--st-warning)}
+.tallybar-seg--crit{background:var(--st-critical)}
+.tallybar-seg--off{background:var(--st-serious)}
+.tally-keys{display:flex;flex-wrap:wrap;gap:3px 11px;margin-top:6px;font-size:.63rem;color:var(--ink-2)}
+.tally-k{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.tally-k.is-hot{color:var(--st-critical);font-weight:700}
+.tally-d{width:8px;height:8px;border-radius:2px;flex:none}
+.tally-d--ok{background:var(--st-good)} .tally-d--warn{background:var(--st-warning)}
+.tally-d--crit{background:var(--st-critical)} .tally-d--off{background:var(--st-serious)}
+
+.zones{display:grid;gap:3px;align-content:start;min-width:0;min-height:0;overflow:auto}
+.zone{display:grid;grid-template-columns:auto 36px minmax(0,1fr) auto auto;gap:8px;align-items:center;
+  padding:5px 8px;border-radius:7px;background:var(--surface-2);font-size:.71rem;
+  border-left:3px solid var(--st-good)}
+.zone--warn{border-left-color:var(--st-warning)}
+.zone--off{border-left-color:var(--st-serious)}
+.zone--crit{border-left-color:var(--st-critical);font-weight:700;
+  background:color-mix(in oklab,var(--st-critical) 16%,var(--surface-2))}
+.zone-led{width:9px;height:9px;border-radius:50%;background:var(--st-good);flex:none}
+.zone-led--warn{background:var(--st-warning)}
+.zone-led--crit{background:var(--st-critical)}
+.zone-led--off{background:var(--st-serious)}
+.zone-fl{font-size:.63rem;font-weight:700;color:var(--ink-2);text-align:center;
+  background:var(--surface-3);border-radius:4px;padding:1px 0}
+.zone-nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.zone-st{font-size:.65rem;color:var(--ink-2);white-space:nowrap}
+.zone--crit .zone-st{color:var(--st-critical)}
+.zone-tm{font-size:.61rem;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+
+/* ------------------------------------- 4. water tanks, pumps, leak line */
+.tw-water{display:grid;gap:9px;grid-template-rows:minmax(0,1fr) auto auto;
+  align-content:start;min-width:0;min-height:0}
+.tanks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;min-height:0}
+@media (max-width:760px){.tanks{grid-template-columns:minmax(0,1fr)}}
+.tank{display:grid;grid-template-columns:auto minmax(0,1fr);gap:9px;padding:9px;border-radius:9px;
+  background:var(--surface-2);border:1px solid var(--hairline);
+  border-left:3px solid var(--st-good);min-width:0;align-content:start}
+.tank--warn{border-left-color:var(--st-warning)}
+.tank--off{border-left-color:var(--st-serious)}
+.tank--crit{border-left-color:var(--st-critical);
+  background:color-mix(in oklab,var(--st-critical) 10%,var(--surface-2))}
+.tank-glass{position:relative;width:44px;min-height:94px;border-radius:7px;
+  border:2px solid var(--baseline);background:var(--surface-1);overflow:hidden}
+.tank-glass--blind{background:repeating-linear-gradient(45deg,
+  var(--surface-1) 0 5px,var(--surface-3) 5px 10px)}
+.tank-fill{position:absolute;left:0;right:0;bottom:0;background:var(--cat-1);opacity:.8;
+  transition:height .5s ease}
+.tank-fill--ok{background:var(--cat-1)}
+.tank-fill--warn{background:var(--st-warning)}
+.tank-fill--crit{background:var(--st-critical)}
+.tank-mark{position:absolute;left:0;right:0;height:0;border-top:1px dashed var(--ink-2);opacity:.5}
+.tank-mark--crit{border-top-color:var(--st-critical);opacity:.85}
+.tank-pct{position:absolute;inset:0;display:grid;place-items:center;text-align:center;
+  font-size:.92rem;font-weight:800;line-height:1.1;color:var(--ink);
+  text-shadow:0 1px 3px var(--surface-1),0 0 6px var(--surface-1);font-variant-numeric:tabular-nums}
+.tank-pct small{font-size:.58rem;font-weight:700}
+.tank-info{display:grid;gap:3px;align-content:start;min-width:0}
+.tank-name{font-size:.73rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tank-role{font-size:.61rem;color:var(--muted)}
+.tank .tstat{justify-self:start;font-size:.63rem}
+.tank-kv{font-size:.62rem;color:var(--ink-2);display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.tank-blindnote{color:var(--st-serious);font-weight:700}
+.tank-spark{color:var(--cat-1);line-height:0}
+
+.pumps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+@media (max-width:860px){.pumps{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.pump{display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:7px;
+  background:var(--surface-2);border:1px solid var(--hairline);min-width:0}
+.pump--crit{border-color:var(--st-critical);
+  background:color-mix(in oklab,var(--st-critical) 11%,var(--surface-2))}
+.pump-led{flex:none;width:12px;height:12px;border-radius:50%;
+  background:var(--surface-1);border:2px solid var(--baseline)}
+.pump-led--ok{background:var(--st-good);border-color:var(--st-good)}
+.pump-led--crit{background:var(--st-critical);border-color:var(--st-critical)}
+.pump-led.is-running{box-shadow:0 0 0 3px color-mix(in oklab,var(--st-good) 26%,transparent)}
+.pump-txt{min-width:0}
+.pump-name{font-size:.68rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pump-sub{font-size:.6rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.leakstrip{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:6px 9px;border-radius:7px;
+  background:var(--surface-2);border:1px solid var(--hairline);font-size:.67rem}
+.leakstrip--crit{border-color:var(--st-critical);
+  background:color-mix(in oklab,var(--st-critical) 12%,var(--surface-2))}
+.leakstrip-l{font-weight:700}
+.leakstrip-dots{display:inline-flex;gap:3px;align-items:center}
+.leakdot{width:8px;height:8px;border-radius:50%;background:var(--st-good);display:inline-block}
+.leakdot--warn{background:var(--st-warning)}
+.leakdot--crit{background:var(--st-critical)}
+.leakdot--off{background:var(--st-serious)}
+.leakstrip-r{margin-left:auto;color:var(--muted);font-size:.62rem}
+.leakstrip-at{font-size:.65rem;color:var(--st-critical);font-weight:700;margin-top:4px}
+
+/* ------------------------------------------- footer: events + demo bar */
+.tmini{display:flex;align-items:baseline;gap:6px;justify-content:flex-end}
+.tmini-v{font-size:1.25rem;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.tmini-v--ok{color:var(--st-good)}
+.tmini-v--warn{color:var(--st-warning)}
+.tmini-v--crit{color:var(--st-critical)}
+.tmini-l{font-size:.65rem;color:var(--muted)}
+
+.tw-foot{display:grid;grid-template-columns:minmax(0,1fr) minmax(248px,0.55fr);
+  gap:var(--gap);min-height:0;flex:none}
+@media (max-width:900px){.tw-foot{grid-template-columns:minmax(0,1fr)}}
+.tw-foot-ev{background:var(--surface-1);border:1px solid var(--hairline);border-radius:var(--radius);
+  padding:9px 12px;display:grid;grid-template-rows:auto minmax(0,1fr);gap:5px;min-height:0}
+.tw-foot-h{font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--muted)}
+.tw-foot-c{font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink-2);margin-left:6px}
+.tw-foot .tevents{overflow:auto;min-height:0;max-height:118px}
+.tw-foot-demo{border:1px dashed var(--st-serious);border-radius:var(--radius);
+  background:color-mix(in oklab,var(--st-serious) 7%,var(--surface-1));padding:8px 11px;
+  display:grid;gap:5px;align-content:start;min-height:0;overflow:auto}
+.tw-foot-demo .demo-title{margin-bottom:0;font-size:.65rem}
+.tw-foot-demo .demo-btns{gap:5px}
+.tw-foot-demo .demo-btns button{padding:4px 9px;font-size:.67rem;min-height:26px}
+.tw-foot-demo .demo-note{font-size:.61rem;margin:0;line-height:1.4}
+
 .demo-panel{border:1px dashed var(--st-serious);border-radius:var(--radius);
   background:color-mix(in oklab,var(--st-serious) 7%,var(--surface-1));padding:13px 15px}
 .demo-title{font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
@@ -1268,7 +1481,7 @@ body {
     </main>
 
     <!-- ============================== TOWER DASHBOARD ======================= -->
-    <main class="view view--page" id="view-tower" hidden>
+    <main class="view view--page view--wall" id="view-tower" hidden>
       <section class="tw-head">
         <div class="tw-head-l">
           <button type="button" class="tw-back" id="twBack">&larr; Main dashboard</button>
@@ -1281,97 +1494,100 @@ body {
       <div class="tw-alerts" id="twFireBanner"></div>
       <div class="tw-alerts" id="twLeakBanner"></div>
 
-      <!-- B. FIRE DETECTION & ALARM — highest visual priority -->
-      <section class="card card--fire">
-        <div class="card-head">
-          <div><div class="card-title">Fire detection &amp; alarm system</div>
-            <div class="card-sub">No fire detector or alarm panel appears in the asset register &mdash;
-            this section is <b>demo data</b> and is not connected to any hardware.</div></div>
-        </div>
-        <div class="grid-2">
-          <div><div id="twFireStatus"></div><div class="tkvs" id="twFirePanel"></div></div>
-          <div class="table-wrap">
-            <table class="dt">
-              <caption>Fire detectors &mdash; demo data, no hardware connection.</caption>
-              <thead><tr><th scope="col">Sensor</th><th scope="col">Location</th><th scope="col">Floor</th>
-                <th scope="col">Status</th><th class="num" scope="col">Detected / updated</th></tr></thead>
-              <tbody id="twFireSensors"></tbody>
-            </table>
+      <div class="tw-grid">
+
+        <!-- 1. ELECTRICITY -->
+        <section class="card tw-q" aria-labelledby="twQ1">
+          <div class="tw-q-head">
+            <span class="tw-q-n">1</span>
+            <div><div class="card-title" id="twQ1">Electricity consumption</div>
+              <div class="card-sub">One combined register point covers Tower C-6 + C-7 &mdash;
+              the per-tower figure is an assumed even split.</div></div>
           </div>
-        </div>
-      </section>
-
-      <!-- A. WATER LEAKAGE -->
-      <section class="card">
-        <div class="card-head">
-          <div><div class="card-title">Water leakage monitoring</div>
-            <div class="card-sub">No leak detector appears in the asset register &mdash; <b>demo data</b>.</div></div>
-        </div>
-        <div class="grid-2">
-          <div id="twLeakStatus"></div>
-          <div class="table-wrap">
-            <table class="dt">
-              <caption>Water leak detectors &mdash; demo data.</caption>
-              <thead><tr><th scope="col">Sensor</th><th scope="col">Location</th><th scope="col">Floor</th>
-                <th scope="col">Status</th><th class="num" scope="col">Last update</th></tr></thead>
-              <tbody id="twLeakSensors"></tbody>
-            </table>
+          <div class="tw-q-body tw-elec">
+            <div class="tstat-row" id="twElecStats"></div>
+            <div id="twElecLoad"></div>
+            <div class="tw-elec-low">
+              <div class="tw-chartbox">
+                <div id="twElecChart"></div>
+                <div class="legend"><span><i></i>Block demand (C-6 + C-7)</span></div>
+              </div>
+              <div class="tkvs" id="twElecMeta"></div>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <!-- C. ELECTRICITY -->
-      <section class="card">
-        <div class="card-head">
-          <div><div class="card-title">Electricity consumption</div>
-            <div class="card-sub">The register records <b>one combined point</b> for Tower C-6 + C-7,
-            so block demand is shared; the per-tower figure is an assumed even split.</div></div>
-        </div>
-        <div class="tstat-row" id="twElecStats"></div>
-        <div class="grid-2" style="margin-top:12px">
-          <div><div id="twElecChart"></div>
-            <div class="legend"><span><i></i>Block demand (C-6 + C-7)</span>
-              <span><i class="k-typical"></i>Typical for this hour</span></div></div>
-          <div class="tkvs" id="twElecMeta"></div>
-        </div>
-      </section>
+        <!-- 2. LIFTS -->
+        <section class="card tw-q" aria-labelledby="twQ2">
+          <div class="tw-q-head">
+            <span class="tw-q-n">2</span>
+            <div><div class="card-title" id="twQ2">Lift / elevator status</div>
+              <div class="card-sub">Lift <b>count</b> comes from the register; live position,
+              direction and state are <b>demo data</b> &mdash; no lift controller is connected.</div></div>
+            <div class="tw-q-aside" id="twLiftSummary"></div>
+          </div>
+          <div class="tw-q-body">
+            <div class="shafts" id="twLifts"></div>
+          </div>
+        </section>
 
-      <!-- D. LIFTS -->
-      <section class="card">
-        <div class="card-head">
-          <div><div class="card-title">Lift / elevator status</div>
-            <div class="card-sub">Lift <b>count</b> comes from the register; live position, direction and
-            state are <b>demo data</b> &mdash; no lift controller is connected.</div></div>
-        </div>
-        <div id="twLiftSummary"></div>
-        <div class="lifts" id="twLifts"></div>
-      </section>
+        <!-- 3. FIRE DETECTION & ALARM -->
+        <section class="card card--fire tw-q" aria-labelledby="twQ3">
+          <div class="tw-q-head">
+            <span class="tw-q-n">3</span>
+            <div><div class="card-title" id="twQ3">Fire detection &amp; alarm system</div>
+              <div class="card-sub">No fire detector or alarm panel appears in the asset register &mdash;
+              this section is <b>demo data</b> and is not connected to any hardware.</div></div>
+          </div>
+          <div class="tw-q-body tw-fire">
+            <div class="tw-fire-l">
+              <div id="twFirePanel"></div>
+              <div id="twFireTally"></div>
+            </div>
+            <div class="zones" id="twFireZones"
+              aria-label="Fire detectors by floor, roof at the top"></div>
+          </div>
+        </section>
 
-      <!-- EVENTS -->
-      <section class="card">
-        <div class="card-head">
-          <div><div class="card-title">Recent events &mdash; this tower only</div>
-            <div class="card-sub">Events are scoped to the selected tower and never cross between towers.</div></div>
-          <div class="card-sub" id="twEventCount"></div>
-        </div>
-        <div class="tevents" id="twEvents"></div>
-      </section>
+        <!-- 4. WATER - TANKS, PUMPS AND LEAK DETECTION -->
+        <section class="card tw-q" aria-labelledby="twQ4">
+          <div class="tw-q-head">
+            <span class="tw-q-n">4</span>
+            <div><div class="card-title" id="twQ4">Water &mdash; tank levels &amp; pumps</div>
+              <div class="card-sub">No tank, level transmitter, pump or leak detector appears in the
+              asset register &mdash; this section is <b>demo data</b>.</div></div>
+          </div>
+          <div class="tw-q-body tw-water">
+            <div class="tanks" id="twTanks"></div>
+            <div class="pumps" id="twPumps"></div>
+            <div id="twLeakStrip"></div>
+          </div>
+        </section>
 
-      <!-- DEMO CONTROLS -->
-      <section class="demo-panel">
-        <div class="demo-title"> Demo controls &mdash; development and acceptance testing only</div>
-        <p class="demo-note">These buttons inject <b>simulated</b> events into the demo data adapter so the
-        alert paths can be verified. They do not operate, test or signal any real detector, alarm panel,
-        sounder or lift controller. Nothing here reaches hardware.</p>
-        <div class="demo-btns" id="twDemoControls">
-          <button type="button" data-demo="fire">Simulate fire detection</button>
-          <button type="button" data-demo="leak">Simulate water leak</button>
-          <button type="button" data-demo="lift">Simulate lift fault</button>
-          <button type="button" data-demo="reset">Reset this tower</button>
+      </div>
+
+      <section class="tw-foot">
+        <div class="tw-foot-ev">
+          <div class="tw-foot-h">Recent events &mdash; this tower only
+            <span class="tw-foot-c" id="twEventCount"></span></div>
+          <div class="tevents" id="twEvents"></div>
+        </div>
+        <div class="tw-foot-demo">
+          <div class="demo-title">Demo controls &mdash; testing only</div>
+          <div class="demo-btns" id="twDemoControls">
+            <button type="button" data-demo="fire">Fire</button>
+            <button type="button" data-demo="leak">Leak</button>
+            <button type="button" data-demo="lift">Lift fault</button>
+            <button type="button" data-demo="tanklow">Tank low</button>
+            <button type="button" data-demo="pump">Pump fault</button>
+            <button type="button" data-demo="reset">Reset</button>
+          </div>
+          <p class="demo-note">Injects <b>simulated</b> events into the demo data adapter so the alert
+          paths can be verified. Nothing here operates, tests or signals any real detector, alarm
+          panel, sounder, pump or lift controller.</p>
         </div>
       </section>
     </main>
-
     <!-- ============================= NOT YET BUILT ========================== -->
     <main class="view" id="view-soon" hidden>
       <div class="soon">

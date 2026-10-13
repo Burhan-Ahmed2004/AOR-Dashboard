@@ -8,7 +8,9 @@
  *   node scripts/test-towers.js
  */
 
-import { createTowerModel, TOWERS, STATE, LIFT_STATE, ALARM_PANEL } from '../src/towers.js';
+import {
+  createTowerModel, TOWERS, STATE, LIFT_STATE, ALARM_PANEL, TANK_STATE, PUMP_STATE,
+} from '../src/towers.js';
 import * as register from '../src/register.js';
 
 let pass = 0, fail = 0;
@@ -38,6 +40,7 @@ const stubStore = {
 const quiet = {
   leakChance: 0, fireChance: 0, sensorFaultChance: 0,
   sensorOfflineChance: 0, liftFaultChance: 0,
+  pumpFaultChance: 0, levelOfflineChance: 0,
 };
 
 console.log('\n  Tower model\n');
@@ -118,6 +121,86 @@ ok('summary marks T2 critical while a leak is active', m.summary('T2', t).severi
 m.triggerDemo('T2', 'reset', t);
 m.update(t);
 ok('reset returns T2 to normal', m.summary('T2', t).severity === 'normal', m.summary('T2', t).severity);
+
+// --- 9. water: tanks ------------------------------------------------------
+console.log('\n  Water system\n');
+
+const w1 = m.snapshot('T1', t).water;
+ok('three tanks are modelled', w1.tanks.length === 3, `got ${w1.tanks.length}`);
+ok('every tank reports a percentage and a capacity',
+  w1.tanks.every((x) => x.pct >= 0 && x.pct <= 100 && x.capacityL > 0));
+ok('tank ids are tower-scoped', w1.tanks.every((x) => x.id.startsWith('T1-')));
+ok('no tank id appears in both towers',
+  !w1.tanks.some((a) => m.snapshot('T2', t).water.tanks.some((b) => b.id === a.id)));
+ok('litres follow from percentage and capacity',
+  Math.abs(w1.tanks[0].litres - (w1.tanks[0].pct / 100) * w1.tanks[0].capacityL) < 1);
+
+// --- 10. water: pump control follows tank level ---------------------------
+// Drive the roof tank below the start setpoint and the duty transfer pump
+// must start; it is control logic, not a coin flip.
+m.triggerDemo('T1', 'tanklow', t);
+t += 1000; m.update(t);
+const low = m.snapshot('T1', t).water;
+const roof = low.tanks.find((x) => x.key === 'ROOF');
+ok('a low roof tank reads as a critical level', roof.state === TANK_STATE.CRITICAL, roof.state);
+ok('a critical tank level raises a critical event',
+  m.snapshot('T1', t).events.some((e) => e.kind === 'tank' && e.severity === 'critical' && !e.clearedAt));
+ok('the duty transfer pump starts on low level',
+  low.pumps.find((p) => p.key === 'TP1').state === PUMP_STATE.RUNNING,
+  low.pumps.find((p) => p.key === 'TP1').state);
+ok('ISOLATION: T2 tanks are unaffected by a T1 tank alarm',
+  m.snapshot('T2', t).water.tanks.every((x) => x.state === TANK_STATE.NORMAL));
+ok('ISOLATION: T2 severity stays normal', m.summary('T2', t).severity === 'normal');
+
+// A level sitting in one alarm band must raise one event, not one per tick.
+// Recovering into a different band is a different condition and SHOULD raise
+// its own event — de-duplication is per condition, not per tank.
+const critEvents = () => m.snapshot('T1', t).events.filter((e) => e.kind === 'tank' && e.severity === 'critical');
+ok('one critical level event is open', critEvents().length === 1, `got ${critEvents().length}`);
+for (let i = 0; i < 8; i++) { t += 1000; m.update(t); }
+ok('DE-DUP: 8 ticks of a low tank produce no extra critical events',
+  critEvents().length === 1, `got ${critEvents().length}`);
+ok('a level recovering out of the critical band closes that event',
+  critEvents()[0].clearedAt !== null);
+ok('ESCALATION: the recovered level raises its own low-band event',
+  m.snapshot('T1', t).events.some((e) => e.kind === 'tank' && e.severity === 'warning' && !e.clearedAt));
+
+// --- 11. water: duty/standby changeover -----------------------------------
+m.triggerDemo('T1', 'reset', t);
+t += 1000; m.update(t);
+m.triggerDemo('T1', 'tanklow', t);
+t += 1000; m.update(t);
+m.triggerDemo('T1', 'pump', t);
+t += 1000; m.update(t);
+const chg = m.snapshot('T1', t).water;
+ok('a faulted duty pump reports a fault',
+  chg.pumps.find((p) => p.key === 'TP1').state === PUMP_STATE.FAULT);
+ok('the standby pump takes over when the duty pump faults',
+  chg.pumps.find((p) => p.key === 'TP2').state === PUMP_STATE.RUNNING,
+  chg.pumps.find((p) => p.key === 'TP2').state);
+ok('a pump fault raises an event', chg.pumps.length && m.snapshot('T1', t).events.some((e) => e.kind === 'pump'));
+
+// --- 12. water: an offline transmitter never reads as live ----------------
+const offModel = createTowerModel(register, stubStore, { ...quiet, levelOfflineChance: 1 });
+let ot = Date.now();
+offModel.update(ot);
+const offTanks = offModel.snapshot('T1', ot).water.tanks;
+ok('an offline level transmitter reports no current value',
+  offTanks.every((x) => x.offline && x.pct === null));
+ok('the last known level is carried separately, not as a live reading',
+  offTanks.every((x) => typeof x.lastKnownPct === 'number'));
+ok('an offline transmitter raises an event',
+  offModel.snapshot('T1', ot).events.some((e) => e.title === 'Level transmitter offline'));
+
+// --- 13. reset clears the water system too --------------------------------
+m.triggerDemo('T1', 'reset', t);
+t += 1000; m.update(t);
+ok('reset returns every tank to normal',
+  m.snapshot('T1', t).water.tanks.every((x) => x.state === TANK_STATE.NORMAL));
+ok('reset clears pump faults',
+  m.snapshot('T1', t).water.pumps.every((p) => p.state !== PUMP_STATE.FAULT));
+ok('reset returns T1 to normal severity', m.summary('T1', t).severity === 'normal',
+  m.summary('T1', t).severity);
 
 console.log(`\n  ${pass} passed, ${fail} failed\n`);
 process.exit(fail ? 1 : 0);

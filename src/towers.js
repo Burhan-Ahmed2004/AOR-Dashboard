@@ -79,6 +79,22 @@ export const ALARM_PANEL = {
   FAULT: 'fault',
 };
 
+/** Water storage level bands. LOW/CRITICAL are level alarms, not sensor faults. */
+export const TANK_STATE = {
+  NORMAL: 'normal',
+  LOW: 'low',
+  CRITICAL: 'critical',
+  HIGH: 'high',
+  OFFLINE: 'offline',
+};
+
+export const PUMP_STATE = {
+  RUNNING: 'running',
+  STOPPED: 'stopped',
+  STANDBY: 'standby',
+  FAULT: 'fault',
+};
+
 /** Sensor positions. DEMO: no detector schedule exists in the register. */
 const LEAK_POSITIONS = [
   ['Basement pump room', 'B1'],
@@ -99,6 +115,38 @@ const FIRE_POSITIONS = [
   ['Lift machine room', 'Roof'],
 ];
 
+/**
+ * Water storage and pumping. DEMO: the register records no tank, no level
+ * transmitter and no water pump, so every figure below is placeholder data.
+ *
+ * The arrangement is the ordinary high-rise one — mains fills an underground
+ * suction tank, transfer pumps lift to a roof tank, the roof tank feeds the
+ * building by gravity with a booster set, and a separate reserve is held for
+ * firefighting. Modelling it that way means the pump states follow from the
+ * tank levels instead of being independent random noise.
+ */
+const TANK_SPECS = [
+  { key: 'UG',   name: 'Underground suction tank', role: 'Suction',  floor: 'B1',
+    capacityL: 90000, startPct: 68, lowPct: 30, criticalPct: 18, highPct: 97 },
+  { key: 'ROOF', name: 'Roof overhead tank',       role: 'Overhead', floor: 'Roof',
+    capacityL: 45000, startPct: 84, lowPct: 25, criticalPct: 15, highPct: 97 },
+  { key: 'FIRE', name: 'Fire reserve tank',        role: 'Reserve',  floor: 'B1',
+    capacityL: 60000, startPct: 97, lowPct: 90, criticalPct: 80, highPct: 100 },
+];
+
+/** Roof-tank level control setpoints (% of capacity). */
+const ROOF_PUMP_ON = 42;
+const ROOF_PUMP_OFF = 93;
+const FIRE_TOPUP_ON = 95;
+const FIRE_TOPUP_OFF = 98.5;
+
+const PUMP_SPECS = [
+  { key: 'TP1', name: 'Transfer pump 1',  duty: 'Duty',    serves: 'ROOF', floor: 'B1' },
+  { key: 'TP2', name: 'Transfer pump 2',  duty: 'Standby', serves: 'ROOF', floor: 'B1' },
+  { key: 'BP1', name: 'Booster set',      duty: 'Duty',    serves: 'ROOF', floor: 'B1' },
+  { key: 'JP1', name: 'Fire jockey pump', duty: 'Standby', serves: 'FIRE', floor: 'B1' },
+];
+
 const DEFAULTS = {
   // Per-sensor, per-tick probabilities. Tuned so a demo shows an event every
   // few minutes rather than constantly, and so the normal state dominates.
@@ -114,6 +162,18 @@ const DEFAULTS = {
   liftFaultMs: 70000,
   staleAfterMs: 20000,
   maxEvents: 60,
+  // Water. Rates are %-of-capacity per second of demo time, chosen so a full
+  // fill/draw cycle is visible to someone watching for a minute or two.
+  roofDrawPctPerSec: 0.30,
+  roofFillPctPerSec: 1.05,
+  ugFillPctPerSec: 0.22,
+  fireTopUpPctPerSec: 0.40,
+  fireDriftPctPerSec: 0.012,
+  pumpFaultChance: 0.00016,
+  pumpFaultMs: 65000,
+  levelOfflineChance: 0.00008,
+  levelOfflineMs: 40000,
+  tankHistoryLen: 60,
 };
 
 function pick(rand, arr) {
@@ -183,8 +243,33 @@ export function createTowerModel(register, store, options = {}) {
         trips: 0,
         lastUpdate: Date.now(),
       })),
+      // ---- water storage + pumping (DEMO) -------------------------------
+      tanks: TANK_SPECS.map((spec) => ({
+        ...spec,
+        id: `${t.id}-TK-${spec.key}`,
+        pct: spec.startPct,
+        prevPct: spec.startPct,
+        state: TANK_STATE.NORMAL,
+        trend: 'steady',
+        offlineUntil: 0,
+        history: [],
+        lastUpdate: Date.now(),
+      })),
+      pumps: PUMP_SPECS.map((spec) => ({
+        ...spec,
+        id: `${t.id}-P-${spec.key}`,
+        state: PUMP_STATE.STOPPED,
+        since: Date.now(),
+        until: 0,
+        runtimeMs: 0,
+        starts: 0,
+        lastUpdate: Date.now(),
+      })),
+      transferDemand: false,
+      fireTopUp: false,
       events: [],
       lastTick: 0,
+      lastWaterTick: 0,
     });
   }
 
@@ -303,6 +388,139 @@ export function createTowerModel(register, store, options = {}) {
     }
   }
 
+  // --------------------------------------------------------- water system
+  const tankOf = (tw, key) => tw.tanks.find((x) => x.key === key);
+  const pumpOf = (tw, key) => tw.pumps.find((x) => x.key === key);
+
+  function setPump(tw, p, next, now) {
+    if (p.state === next) return;
+    if (next === PUMP_STATE.RUNNING) p.starts += 1;
+    p.state = next;
+    p.since = now;
+  }
+
+  /**
+   * One water tick. Pump states are DERIVED from tank levels here rather than
+   * randomised, so what the screen shows is at least internally consistent:
+   * the transfer pump runs because the roof tank is low, not by coincidence.
+   */
+  function tickWater(tw, now) {
+    const dt = Math.min(Math.max(now - (tw.lastWaterTick || now), 0), 5000) / 1000;
+    tw.lastWaterTick = now;
+
+    const roof = tankOf(tw, 'ROOF');
+    const ug = tankOf(tw, 'UG');
+    const fire = tankOf(tw, 'FIRE');
+
+    // --- pump faults and their recovery ---------------------------------
+    for (const p of tw.pumps) {
+      p.lastUpdate = now;
+      if (p.state === PUMP_STATE.FAULT) {
+        if (p.until && now >= p.until) { p.until = 0; setPump(tw, p, PUMP_STATE.STOPPED, now); clear(tw, p.id, now); }
+        continue;
+      }
+      if (rand() < cfg.pumpFaultChance) {
+        p.until = now + cfg.pumpFaultMs;
+        setPump(tw, p, PUMP_STATE.FAULT, now);
+        raise(tw, 'pump', 'warning', 'Pump fault', `${p.name} (${p.duty.toLowerCase()})`, p.id, now);
+      }
+    }
+
+    // --- level transmitter comms ----------------------------------------
+    for (const tk of tw.tanks) {
+      if (tk.offlineUntil) {
+        if (now >= tk.offlineUntil) { tk.offlineUntil = 0; clear(tw, `${tk.id}-COMMS`, now); }
+      } else if (rand() < cfg.levelOfflineChance) {
+        tk.offlineUntil = now + cfg.levelOfflineMs;
+        raise(tw, 'sensor', 'warning', 'Level transmitter offline',
+          `${tk.name} — no level reading`, `${tk.id}-COMMS`, now);
+      }
+    }
+
+    // --- level control --------------------------------------------------
+    // With no level signal the controller holds its last demand rather than
+    // guessing a level it cannot see.
+    const roofBlind = roof.offlineUntil > 0;
+    if (!roofBlind) {
+      if (roof.pct <= ROOF_PUMP_ON) tw.transferDemand = true;
+      else if (roof.pct >= ROOF_PUMP_OFF) tw.transferDemand = false;
+    }
+
+    // Duty/standby changeover: if the duty transfer pump is faulted, the
+    // standby takes the duty.
+    const tp1 = pumpOf(tw, 'TP1');
+    const tp2 = pumpOf(tw, 'TP2');
+    const duty = tp1.state === PUMP_STATE.FAULT ? tp2 : tp1;
+    const standby = duty === tp1 ? tp2 : tp1;
+    if (duty.state !== PUMP_STATE.FAULT) {
+      setPump(tw, duty, tw.transferDemand ? PUMP_STATE.RUNNING : PUMP_STATE.STOPPED, now);
+    }
+    if (standby.state !== PUMP_STATE.FAULT) setPump(tw, standby, PUMP_STATE.STANDBY, now);
+
+    const booster = pumpOf(tw, 'BP1');
+    if (booster.state !== PUMP_STATE.FAULT) {
+      setPump(tw, booster,
+        !roofBlind && roof.pct > roof.criticalPct ? PUMP_STATE.RUNNING : PUMP_STATE.STOPPED, now);
+    }
+    // Jockey pump tops the fire reserve back up, with a deadband so it does
+    // not hunt on and off around a single setpoint.
+    const jockey = pumpOf(tw, 'JP1');
+    if (!fire.offlineUntil) {
+      if (fire.pct < FIRE_TOPUP_ON) tw.fireTopUp = true;
+      else if (fire.pct >= FIRE_TOPUP_OFF) tw.fireTopUp = false;
+    }
+    if (jockey.state !== PUMP_STATE.FAULT) {
+      setPump(tw, jockey, tw.fireTopUp ? PUMP_STATE.RUNNING : PUMP_STATE.STANDBY, now);
+    }
+
+    // --- move the water -------------------------------------------------
+    const transferring = duty.state === PUMP_STATE.RUNNING;
+    const delta = {
+      ROOF: (transferring ? cfg.roofFillPctPerSec : 0)
+          - (booster.state === PUMP_STATE.RUNNING ? cfg.roofDrawPctPerSec : 0),
+      UG: (ug.pct < 95 ? cfg.ugFillPctPerSec : 0)
+          - (transferring ? cfg.roofFillPctPerSec * (roof.capacityL / ug.capacityL) : 0),
+      FIRE: (jockey.state === PUMP_STATE.RUNNING ? cfg.fireTopUpPctPerSec : 0) - cfg.fireDriftPctPerSec,
+    };
+
+    for (const p of tw.pumps) if (p.state === PUMP_STATE.RUNNING) p.runtimeMs += dt * 1000;
+
+    const ALARM_BANDS = [TANK_STATE.CRITICAL, TANK_STATE.LOW, TANK_STATE.HIGH];
+    for (const tk of tw.tanks) {
+      tk.prevPct = tk.pct;
+      tk.pct = Math.max(0, Math.min(100, tk.pct + (delta[tk.key] || 0) * dt));
+      tk.lastUpdate = now;
+
+      const moved = tk.pct - tk.prevPct;
+      if (tk.offlineUntil) {
+        tk.state = TANK_STATE.OFFLINE;
+        tk.trend = 'unknown';
+      } else {
+        tk.trend = moved > 0.02 ? 'filling' : moved < -0.02 ? 'draining' : 'steady';
+        tk.state = tk.pct <= tk.criticalPct ? TANK_STATE.CRITICAL
+          : tk.pct <= tk.lowPct ? TANK_STATE.LOW
+          : tk.pct >= tk.highPct ? TANK_STATE.HIGH
+          : TANK_STATE.NORMAL;
+        tk.history.push({ t: now, v: tk.pct });
+        if (tk.history.length > cfg.tankHistoryLen) tk.history.shift();
+      }
+
+      // One open event per band, so a level sitting in the low band does not
+      // re-raise every tick, but a drop from low to critical still escalates.
+      for (const band of ALARM_BANDS) {
+        if (band !== tk.state) clear(tw, `${tk.id}-LVL-${band}`, now);
+      }
+      if (ALARM_BANDS.includes(tk.state)) {
+        const word = tk.state === TANK_STATE.CRITICAL ? 'Tank level critically low'
+          : tk.state === TANK_STATE.LOW ? 'Tank level low' : 'Tank level high';
+        const limit = tk.state === TANK_STATE.HIGH ? `above ${tk.highPct}%`
+          : `below ${tk.state === TANK_STATE.CRITICAL ? tk.criticalPct : tk.lowPct}%`;
+        raise(tw, 'tank', tk.state === TANK_STATE.CRITICAL ? 'critical' : 'warning', word,
+          `${tk.name} — ${tk.pct.toFixed(0)}% (alarm ${limit})`, `${tk.id}-LVL-${tk.state}`, now);
+      }
+    }
+  }
+
   /** Advance every tower. Call once per render tick. */
   function update(now = Date.now()) {
     for (const tw of towers.values()) {
@@ -313,6 +531,7 @@ export function createTowerModel(register, store, options = {}) {
         tickSensor(tw, s, now, cfg.fireChance, cfg.fireClearMs, 'FIRE DETECTED', 'fire', 'critical');
       }
       for (const l of tw.lifts) tickLift(tw, l, now);
+      tickWater(tw, now);
 
       // Alarm panel follows its own detectors only — never the other tower's.
       const firing = tw.fireSensors.some((s) => s.state === STATE.ALERT);
@@ -361,6 +580,28 @@ export function createTowerModel(register, store, options = {}) {
       l.lastUpdate = now;
       return raise(tw, 'lift', 'warning', 'Lift fault', `${l.name} — floor ${l.floor}`, l.id, now);
     }
+    if (kind === 'tanklow') {
+      const tk = tankOf(tw, 'ROOF');
+      tk.offlineUntil = 0;
+      tk.prevPct = tk.pct;
+      tk.pct = tk.criticalPct - 3;
+      tk.state = TANK_STATE.CRITICAL;
+      tk.trend = 'draining';
+      tk.lastUpdate = now;
+      tw.transferDemand = true;
+      return raise(tw, 'tank', 'critical', 'Tank level critically low',
+        `${tk.name} — ${tk.pct.toFixed(0)}% (alarm below ${tk.criticalPct}%)`,
+        `${tk.id}-LVL-${TANK_STATE.CRITICAL}`, now);
+    }
+    if (kind === 'pump') {
+      // Fault the running duty transfer pump so the standby changeover shows.
+      const p = pumpOf(tw, 'TP1').state === PUMP_STATE.FAULT ? pumpOf(tw, 'TP2') : pumpOf(tw, 'TP1');
+      p.state = PUMP_STATE.FAULT;
+      p.since = now;
+      p.until = now + cfg.pumpFaultMs;
+      p.lastUpdate = now;
+      return raise(tw, 'pump', 'warning', 'Pump fault', `${p.name} (${p.duty.toLowerCase()})`, p.id, now);
+    }
     if (kind === 'reset') {
       for (const s of [...tw.leakSensors, ...tw.fireSensors]) {
         s.state = STATE.NORMAL; s.until = 0; s.since = 0;
@@ -371,6 +612,23 @@ export function createTowerModel(register, store, options = {}) {
           l.state = LIFT_STATE.IDLE; l.until = 0; clear(tw, l.id, now);
         }
       }
+      for (const tk of tw.tanks) {
+        tk.pct = tk.startPct;
+        tk.prevPct = tk.startPct;
+        tk.state = TANK_STATE.NORMAL;
+        tk.trend = 'steady';
+        tk.offlineUntil = 0;
+        tk.lastUpdate = now;
+        clear(tw, `${tk.id}-COMMS`, now);
+        for (const band of [TANK_STATE.CRITICAL, TANK_STATE.LOW, TANK_STATE.HIGH]) {
+          clear(tw, `${tk.id}-LVL-${band}`, now);
+        }
+      }
+      for (const p of tw.pumps) {
+        if (p.state === PUMP_STATE.FAULT) { p.state = PUMP_STATE.STOPPED; p.until = 0; }
+        clear(tw, p.id, now);
+      }
+      tw.transferDemand = false;
       return null;
     }
     return null;
@@ -451,9 +709,68 @@ export function createTowerModel(register, store, options = {}) {
           : STATE.NORMAL,
       },
       lifts: tw.lifts.map((l) => ({ ...l, stale: stale(l) })),
+      water: water(tw, now, stale),
       electricity: electricity(towerId),
       events: tw.events,
       lastTick: tw.lastTick,
+    };
+  }
+
+  /**
+   * Water storage and pumping for one tower.
+   *
+   * A tank whose transmitter is offline reports `pct: null`. The last known
+   * figure is carried separately as `lastKnownPct` so the UI can say "last
+   * known 61%, 40s ago" — it must never pass a stale number off as live.
+   */
+  function water(tw, now, stale) {
+    const tanks = tw.tanks.map((tk) => {
+      const offline = tk.offlineUntil > 0;
+      return {
+        id: tk.id, key: tk.key, name: tk.name, role: tk.role, floor: tk.floor,
+        capacityL: tk.capacityL,
+        state: tk.state,
+        trend: tk.trend,
+        offline,
+        pct: offline ? null : tk.pct,
+        lastKnownPct: tk.pct,
+        litres: offline ? null : Math.round((tk.pct / 100) * tk.capacityL),
+        lowPct: tk.lowPct,
+        criticalPct: tk.criticalPct,
+        highPct: tk.highPct,
+        history: tk.history,
+        lastUpdate: tk.lastUpdate,
+        stale: !offline && stale(tk),
+      };
+    });
+
+    const pumps = tw.pumps.map((p) => ({
+      id: p.id, key: p.key, name: p.name, duty: p.duty, floor: p.floor,
+      serves: p.serves,
+      state: p.state,
+      since: p.since,
+      runtimeMs: p.runtimeMs,
+      starts: p.starts,
+      lastUpdate: p.lastUpdate,
+      stale: stale(p),
+    }));
+
+    const worstTank = tanks.some((t) => t.state === TANK_STATE.CRITICAL) ? TANK_STATE.CRITICAL
+      : tanks.some((t) => t.state === TANK_STATE.LOW) ? TANK_STATE.LOW
+      : tanks.some((t) => t.state === TANK_STATE.HIGH) ? TANK_STATE.HIGH
+      : tanks.some((t) => t.offline) ? TANK_STATE.OFFLINE
+      : TANK_STATE.NORMAL;
+
+    const live = tanks.filter((t) => t.pct != null);
+    return {
+      tanks,
+      pumps,
+      tankStatus: worstTank,
+      pumpsFaulted: pumps.filter((p) => p.state === PUMP_STATE.FAULT),
+      pumpsRunning: pumps.filter((p) => p.state === PUMP_STATE.RUNNING),
+      minPct: live.length ? Math.min(...live.map((t) => t.pct)) : null,
+      totalLitres: live.reduce((a, t) => a + t.litres, 0),
+      totalCapacityL: tanks.reduce((a, t) => a + t.capacityL, 0),
     };
   }
 
@@ -462,9 +779,11 @@ export function createTowerModel(register, store, options = {}) {
     const s = snapshot(towerId, now);
     if (!s) return null;
     const liftBad = s.lifts.filter((l) => l.state === LIFT_STATE.FAULT || l.state === LIFT_STATE.OUT_OF_SERVICE);
-    const severity = s.fire.status === STATE.ALERT ? 'critical'
-      : s.leak.status === STATE.ALERT ? 'critical'
-      : (s.fire.status !== STATE.NORMAL || s.leak.status !== STATE.NORMAL || liftBad.length) ? 'warning'
+    const w = s.water;
+    const waterCritical = w.tankStatus === TANK_STATE.CRITICAL;
+    const waterWarn = w.tankStatus !== TANK_STATE.NORMAL || w.pumpsFaulted.length > 0;
+    const severity = s.fire.status === STATE.ALERT || s.leak.status === STATE.ALERT || waterCritical ? 'critical'
+      : (s.fire.status !== STATE.NORMAL || s.leak.status !== STATE.NORMAL || liftBad.length || waterWarn) ? 'warning'
       : 'normal';
     return {
       towerId,
@@ -473,6 +792,9 @@ export function createTowerModel(register, store, options = {}) {
       severity,
       fire: s.fire.status,
       leak: s.leak.status,
+      water: w.tankStatus,
+      minTankPct: w.minPct,
+      pumpsFaulted: w.pumpsFaulted.length,
       liftsTotal: s.lifts.length,
       liftsAvailable: s.lifts.filter((l) => l.state === LIFT_STATE.RUNNING || l.state === LIFT_STATE.IDLE).length,
       kw: s.electricity ? s.electricity.towerKw : null,
